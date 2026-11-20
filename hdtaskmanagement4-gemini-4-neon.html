@@ -1,0 +1,3832 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Quản Lý Task Tối Ưu ROI</title>
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Identity Services (OAuth 2.0 Client-side) -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+          },
+        },
+      },
+    };
+  </script>
+  <style>
+    :root {
+      --bg-page: #f8fafc;
+      --bg-surface: #ffffff;
+      --bg-surface-alt: #f8fafc;
+      --bg-subtle: #f1f5f9;
+      --border-color: #e2e8f0;
+      --text-primary: #0f172a;
+      --text-secondary: #334155;
+      --text-muted: #64748b;
+      --input-bg: #ffffff;
+      --row-hover: #f8fafc;
+    }
+
+    html.dark {
+      --bg-page: #0b1120;
+      --bg-surface: #111827;
+      --bg-surface-alt: #0f172a;
+      --bg-subtle: #1e293b;
+      --border-color: #1f2937;
+      --text-primary: #f1f5f9;
+      --text-secondary: #cbd5e1;
+      --text-muted: #94a3b8;
+      --input-bg: #0f172a;
+      --row-hover: #1e293b80;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background-color: var(--bg-page);
+      color: var(--text-primary);
+      transition: background-color 0.2s ease, color 0.2s ease;
+    }
+
+    .theme-surface {
+      background-color: var(--bg-surface);
+      border-color: var(--border-color);
+    }
+
+    .theme-surface-alt {
+      background-color: var(--bg-surface-alt);
+      border-color: var(--border-color);
+    }
+
+    .theme-subtle {
+      background-color: var(--bg-subtle);
+      border-color: var(--border-color);
+    }
+
+    .theme-border {
+      border-color: var(--border-color);
+    }
+
+    .theme-text-primary {
+      color: var(--text-primary);
+    }
+
+    .theme-text-secondary {
+      color: var(--text-secondary);
+    }
+
+    .theme-text-muted {
+      color: var(--text-muted);
+    }
+
+    .theme-input {
+      background-color: var(--input-bg);
+      border-color: var(--border-color);
+      color: var(--text-primary);
+    }
+
+    .theme-row-hover:hover {
+      background-color: var(--row-hover);
+    }
+
+    .custom-scroll::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+
+    .custom-scroll::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: rgba(148, 163, 184, 0.35);
+      border-radius: 9999px;
+    }
+
+    .custom-scroll::-webkit-scrollbar-thumb:hover {
+      background: rgba(148, 163, 184, 0.6);
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(4px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .animate-fade-in {
+      animation: fadeIn 0.18s ease-out;
+    }
+
+    .kanban-dropzone-active {
+      outline: 2px dashed #6366f1;
+      outline-offset: -4px;
+      background-color: rgba(99, 102, 241, 0.08);
+    }
+  </style>
+</head>
+<body class="min-h-screen antialiased selection:bg-indigo-500/20 selection:text-indigo-600 dark:selection:text-indigo-300">
+  <!-- CONTAINER CHÍNH -->
+  <div class="max-w-[1440px] mx-auto px-3 sm:px-5 lg:px-6 py-4 space-y-3.5">
+
+    <!-- =========================================================================
+         1. HEADER
+         ========================================================================= -->
+    <header class="theme-surface border rounded-2xl px-4 py-3 shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+      <!-- Logo & Tiêu đề -->
+      <div class="flex items-center gap-3 min-w-0">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-600 to-violet-600 text-white flex items-center justify-center shadow-sm shrink-0">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+          </svg>
+        </div>
+        <div class="min-w-0">
+          <h1 id="appTitle" class="text-base sm:text-lg font-extrabold tracking-tight theme-text-primary truncate">
+            Quản Lý Task Tối Ưu ROI
+          </h1>
+          <p id="appSubtitle" class="text-xs theme-text-muted truncate">
+            Phân rã công việc • Đánh giá Giá trị / Công sức (1–100) • Đồng bộ Google Drive
+          </p>
+        </div>
+      </div>
+
+      <!-- Các nút thao tác Header -->
+      <div class="flex flex-wrap items-center gap-2">
+        <!-- Chuyển đổi ngôn ngữ VI / EN -->
+        <div class="inline-flex items-center p-0.5 rounded-xl border theme-subtle">
+          <button type="button" data-lang="vi"
+            class="lang-btn px-2.5 py-1 text-xs font-bold rounded-lg transition cursor-pointer">
+            VI
+          </button>
+          <button type="button" data-lang="en"
+            class="lang-btn px-2.5 py-1 text-xs font-bold rounded-lg transition cursor-pointer">
+            EN
+          </button>
+        </div>
+
+        <!-- Chuyển đổi Light / Dark mode -->
+        <button id="btnToggleTheme" type="button" title="Light / Dark Mode"
+          class="p-2 rounded-xl border theme-surface theme-text-secondary hover:border-indigo-400 transition cursor-pointer">
+          <svg id="iconSun" class="w-4 h-4 hidden text-amber-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+          </svg>
+          <svg id="iconMoon" class="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+          </svg>
+        </button>
+
+        <!-- Quản lý Tag -->
+        <button id="btnOpenTagModal" type="button"
+          class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs sm:text-sm font-medium rounded-xl border theme-surface theme-text-secondary hover:border-indigo-400 transition cursor-pointer">
+          <svg class="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+          </svg>
+          <span id="lblBtnTags">Quản lý Tag</span>
+        </button>
+
+        <!-- Nút trạng thái & cấu hình Google Drive -->
+        <button id="btnOpenDriveModal" type="button"
+          class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs sm:text-sm font-medium rounded-xl border theme-surface theme-text-secondary hover:border-indigo-400 transition cursor-pointer">
+          <span id="driveHeaderDot" class="w-2 h-2 rounded-full bg-slate-400 shrink-0"></span>
+          <svg class="w-4 h-4 theme-text-muted shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
+          </svg>
+          <span id="driveHeaderStatusText">Drive: Chưa kết nối</span>
+        </button>
+
+        <!-- Export JSON -->
+        <button id="btnExportJson" type="button"
+          class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs sm:text-sm font-medium rounded-xl border theme-surface theme-text-secondary hover:border-indigo-400 transition cursor-pointer">
+          <svg class="w-4 h-4 theme-text-muted" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+          </svg>
+          <span id="lblBtnExport">Xuất JSON</span>
+        </button>
+
+        <!-- Import JSON -->
+        <label class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs sm:text-sm font-medium rounded-xl border theme-surface theme-text-secondary hover:border-indigo-400 transition cursor-pointer">
+          <svg class="w-4 h-4 theme-text-muted" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+          </svg>
+          <span id="lblBtnImport">Nhập JSON</span>
+          <input id="inputImportJson" type="file" accept=".json,application/json" class="hidden" />
+        </label>
+
+        <!-- Nút Thêm công việc -->
+        <button id="btnOpenAddTaskModal" type="button"
+          class="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs sm:text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-xs transition cursor-pointer">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+          </svg>
+          <span id="lblBtnAddTask">Thêm công việc</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- BANNER THÔNG BÁO HẾT PHIÊN GOOGLE DRIVE (1-CLICK KẾT NỐI LẠI & TẢI DỮ LIỆU) -->
+    <div id="driveExpiredBanner" class="hidden rounded-xl border border-amber-300 dark:border-amber-500/40 bg-amber-50 dark:bg-amber-500/15 px-4 py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 animate-fade-in">
+      <div class="flex items-center gap-2.5 text-xs sm:text-sm text-amber-900 dark:text-amber-200">
+        <svg class="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M10.29 3.86l-7.5 13A1 1 0 003.65 18.5h16.7a1 1 0 00.86-1.5l-7.5-13a1 1 0 00-1.72 0z" />
+        </svg>
+        <span id="lblDriveExpiredBannerText" class="font-medium">Phiên Google Drive đã hết hạn — Bấm để kết nối lại và tự động tải dữ liệu mới nhất.</span>
+      </div>
+      <div class="flex items-center gap-2 shrink-0">
+        <button id="btnBannerReconnect" type="button"
+          class="px-3 py-1.5 text-xs font-semibold text-white bg-amber-600 hover:bg-amber-700 rounded-lg shadow-xs transition cursor-pointer">
+          Kết nối lại &amp; Tải dữ liệu
+        </button>
+        <button id="btnBannerDismiss" type="button"
+          class="p-1 text-amber-700 dark:text-amber-300 hover:bg-amber-500/20 rounded-lg transition cursor-pointer"
+          aria-label="Close banner">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- BANNER CẢNH BÁO TASK Ở TRẠNG THÁI "CẦN LÀM" QUÁ 7 NGÀY -->
+    <div id="todoOverdueBanner" class="hidden rounded-xl border border-rose-300 dark:border-rose-500/40 bg-rose-50 dark:bg-rose-500/15 px-4 py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 animate-fade-in">
+      <div class="flex items-center gap-2.5 text-xs sm:text-sm text-rose-900 dark:text-rose-200">
+        <svg class="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <span id="lblTodoOverdueBannerText" class="font-medium"></span>
+      </div>
+      <div class="flex items-center gap-2 shrink-0">
+        <button id="btnOverdueFilterTodo" type="button"
+          class="px-3 py-1.5 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-lg shadow-xs transition cursor-pointer">
+          Xem danh sách Cần làm
+        </button>
+        <button id="btnOverdueDismiss" type="button"
+          class="p-1 text-rose-700 dark:text-rose-300 hover:bg-rose-500/20 rounded-lg transition cursor-pointer"
+          aria-label="Close overdue banner">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- =========================================================================
+         2. DASHBOARD SIÊU GỌN (COMPACT STATS BAR - 1 HÀNG NGANG)
+         ========================================================================= -->
+    <section class="theme-surface border rounded-2xl px-4 py-2.5 shadow-xs flex flex-wrap items-center justify-between gap-x-4 gap-y-2 text-xs">
+      <div class="flex flex-wrap items-center gap-x-3.5 gap-y-1.5">
+        <div class="inline-flex items-center gap-1.5">
+          <span id="lblStatMain" class="theme-text-muted">Công việc chính:</span>
+          <strong id="statMainTasks" class="theme-text-primary font-bold text-sm">0</strong>
+        </div>
+        <span class="theme-text-muted opacity-30">|</span>
+        <div class="inline-flex items-center gap-1.5">
+          <span id="lblStatSub" class="theme-text-muted">Task nhỏ:</span>
+          <strong id="statSubtasks" class="theme-text-primary font-bold text-sm">0</strong>
+        </div>
+        <span class="hidden sm:inline theme-text-muted opacity-30">|</span>
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-500/15 text-slate-700 dark:text-slate-300 font-medium">
+            <span class="w-1.5 h-1.5 rounded-full bg-slate-500"></span>
+            <span id="lblStatBacklog">Tồn đọng:</span> <strong id="statBacklog">0</strong>
+          </span>
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-violet-500/15 text-violet-700 dark:text-violet-300 font-medium">
+            <span class="w-1.5 h-1.5 rounded-full bg-violet-500"></span>
+            <span id="lblStatTodo">Cần làm:</span> <strong id="statTodo">0</strong>
+          </span>
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-sky-500/15 text-sky-700 dark:text-sky-300 font-medium">
+            <span class="w-1.5 h-1.5 rounded-full bg-sky-500"></span>
+            <span id="lblStatInProgress">Đang làm:</span> <strong id="statInProgress">0</strong>
+          </span>
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-medium">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+            <span id="lblStatDone">Hoàn thành:</span> <strong id="statDone">0</strong>
+          </span>
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-500/15 text-rose-700 dark:text-rose-300 font-medium">
+            <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+            <span id="lblStatAborted">Hủy bỏ:</span> <strong id="statAborted">0</strong>
+          </span>
+          <button id="statOverdueBadge" type="button"
+            class="hidden inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-600 text-white font-semibold text-[11px] hover:bg-rose-700 transition cursor-pointer">
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span id="statOverdueText">0 quá hạn &gt;7 ngày</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
+        <div class="inline-flex items-center gap-1.5">
+          <span id="lblStatAvgRoi" class="theme-text-muted">ROI TB:</span>
+          <strong id="statAvgRoi" class="text-indigo-600 dark:text-indigo-400 font-bold text-sm">0.00</strong>
+        </div>
+        <span class="hidden sm:inline theme-text-muted opacity-30">|</span>
+        <div class="inline-flex items-center gap-1.5">
+          <span id="lblStatDoneRate" class="theme-text-muted">Tỷ lệ hoàn thành:</span>
+          <span id="statDonePct" class="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-bold text-[11px]">0%</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- =========================================================================
+         3. THANH CÔNG CỤ: VIEW SWITCH, LỌC TRẠNG THÁI, SẮP XẾP, TÌM KIẾM & LỌC TAG
+         ========================================================================= -->
+    <section class="theme-surface border rounded-2xl p-3 shadow-xs space-y-2.5">
+      <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-2.5">
+        <!-- Trái: View Switch + Status Filter -->
+        <div class="flex flex-wrap items-center gap-2">
+          <!-- View Switch: Table vs Kanban -->
+          <div class="inline-flex items-center p-0.5 rounded-xl border theme-subtle">
+            <button type="button" data-view="table"
+              class="view-switch-btn inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition cursor-pointer">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+              <span id="lblViewTable">Bảng</span>
+            </button>
+            <button type="button" data-view="kanban"
+              class="view-switch-btn inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition cursor-pointer">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
+              </svg>
+              <span id="lblViewKanban">Kanban</span>
+            </button>
+          </div>
+
+          <!-- Status Filter Tabs -->
+          <div id="statusFilterTabs" class="flex flex-wrap items-center gap-1">
+            <button type="button" data-status="all" class="status-tab px-2.5 py-1.5 text-xs font-semibold rounded-xl transition cursor-pointer">Tất cả</button>
+            <button type="button" data-status="backlog" class="status-tab px-2.5 py-1.5 text-xs font-semibold rounded-xl transition cursor-pointer">Tồn đọng</button>
+            <button type="button" data-status="todo" class="status-tab px-2.5 py-1.5 text-xs font-semibold rounded-xl transition cursor-pointer">Cần làm</button>
+            <button type="button" data-status="in_progress" class="status-tab px-2.5 py-1.5 text-xs font-semibold rounded-xl transition cursor-pointer">Đang làm</button>
+            <button type="button" data-status="done" class="status-tab px-2.5 py-1.5 text-xs font-semibold rounded-xl transition cursor-pointer">Hoàn thành</button>
+            <button type="button" data-status="aborted" class="status-tab px-2.5 py-1.5 text-xs font-semibold rounded-xl transition cursor-pointer">Hủy bỏ</button>
+          </div>
+        </div>
+
+        <!-- Phải: Sort Dropdown + Reset ROI + Search -->
+        <div class="flex flex-wrap items-center gap-2">
+          <!-- Sort Control -->
+          <div class="inline-flex items-center gap-1.5">
+            <label for="sortSelect" id="lblSortBy" class="text-xs font-medium theme-text-muted shrink-0">Sắp xếp:</label>
+            <select id="sortSelect"
+              class="px-2.5 py-1.5 text-xs font-semibold rounded-xl border theme-input focus:outline-none focus:ring-2 focus:ring-indigo-500/30 cursor-pointer">
+              <option value="roi_desc">ROI: Cao → Thấp</option>
+              <option value="value_desc">Giá trị: Cao → Thấp</option>
+              <option value="effort_asc">Công sức: Thấp → Cao</option>
+              <option value="created_desc">Ngày tạo: Mới nhất</option>
+              <option value="completed_desc">Ngày hoàn thành: Mới nhất</option>
+            </select>
+            <button id="btnResetSort" type="button" title="Đặt lại sắp xếp ROI"
+              class="hidden px-2.5 py-1.5 text-xs font-semibold rounded-xl border theme-subtle text-indigo-600 dark:text-indigo-400 hover:border-indigo-400 transition cursor-pointer">
+              ↺ ROI
+            </button>
+          </div>
+
+          <!-- Search Input -->
+          <div class="relative flex-1 sm:flex-initial sm:w-64 min-w-[180px]">
+            <svg class="w-4 h-4 theme-text-muted absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <input id="searchInput" type="text" placeholder="Tìm công việc, mô tả, tag..."
+              class="w-full pl-9 pr-3 py-1.5 text-xs sm:text-sm rounded-xl border theme-input focus:outline-none focus:ring-2 focus:ring-indigo-500/30" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Thanh lọc theo Tag -->
+      <div id="tagFilterRow" class="flex flex-wrap items-center gap-1.5 pt-2 border-t theme-border">
+        <span id="lblTagFilter" class="text-[11px] font-semibold theme-text-muted mr-1">Lọc Tag:</span>
+        <div id="tagFilterList" class="flex flex-wrap items-center gap-1.5"></div>
+      </div>
+    </section>
+
+    <!-- =========================================================================
+         4. KHU VỰC HIỂN THỊ CHÍNH: DẠNG BẢNG (TABLE) & DẠNG KANBAN
+         ========================================================================= -->
+
+    <!-- 4A. TABLE VIEW -->
+    <section id="tableViewSection" class="theme-surface border rounded-2xl shadow-xs overflow-hidden">
+      <div class="overflow-x-auto custom-scroll">
+        <table class="w-full text-left border-collapse min-w-[880px]">
+          <thead>
+            <tr class="theme-surface-alt border-b theme-border text-[11px] font-bold uppercase tracking-wider theme-text-muted">
+              <th id="thMainTask" class="py-3 px-4 w-[24%]">Công việc chính</th>
+              <th id="thSubtask" class="py-3 px-4 w-[34%]">Task nhỏ &amp; Thời gian</th>
+              <th id="thStatus" class="py-3 px-3 w-[13%]">Trạng thái</th>
+              <th id="thValue" class="py-3 px-3 w-[8%] text-center">Giá trị</th>
+              <th id="thEffort" class="py-3 px-3 w-[8%] text-center">Công sức</th>
+              <th id="thRoi" class="py-3 px-3 w-[7%] text-center">ROI</th>
+              <th id="thActions" class="py-3 px-3 w-[6%] text-right">Thao tác</th>
+            </tr>
+          </thead>
+          <tbody id="taskTableBody" class="divide-y theme-border text-sm"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 4B. KANBAN VIEW (5 CỘT) -->
+    <section id="kanbanViewSection" class="hidden grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 items-start">
+      <!-- Render động 5 cột bằng JS -->
+    </section>
+
+    <!-- 4C. EMPTY STATE -->
+    <section id="emptyState" class="hidden theme-surface border rounded-2xl px-6 py-12 text-center shadow-xs">
+      <div class="w-12 h-12 rounded-2xl bg-indigo-500/10 text-indigo-500 mx-auto flex items-center justify-center mb-3">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+        </svg>
+      </div>
+      <h3 id="emptyStateTitle" class="text-base font-bold theme-text-primary">Chưa có công việc nào</h3>
+      <p id="emptyStateDesc" class="text-xs sm:text-sm theme-text-muted mt-1 max-w-md mx-auto">
+        Bấm "+ Thêm công việc đầu tiên" bên dưới hoặc trên thanh công cụ để bắt đầu.
+      </p>
+      <div class="mt-4 flex flex-wrap items-center justify-center gap-2">
+        <button id="btnClearFilters" type="button"
+          class="hidden px-4 py-2 text-xs font-semibold theme-text-secondary theme-subtle hover:opacity-85 rounded-xl transition cursor-pointer">
+          Xóa bộ lọc
+        </button>
+        <button id="btnEmptyAddTask" type="button"
+          class="hidden inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-xs transition cursor-pointer">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+          </svg>
+          <span id="lblBtnEmptyAddTask">Thêm công việc đầu tiên</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- =========================================================================
+         5. FOOTER LEGEND
+         ========================================================================= -->
+    <footer class="flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] theme-text-muted px-1 pt-1 pb-4">
+      <div class="flex flex-wrap items-center gap-2">
+        <span id="lblLegendTitle" class="font-semibold">Thang ROI:</span>
+        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-semibold">
+          ≥ 2.0 <span id="lblLegendHigh">Cao (Ưu tiên)</span>
+        </span>
+        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 font-semibold">
+          1.0 – 1.99 <span id="lblLegendMid">Trung bình</span>
+        </span>
+        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-500/15 text-slate-600 dark:text-slate-300 font-semibold">
+          &lt; 1.0 <span id="lblLegendLow">Thấp</span>
+        </span>
+      </div>
+      <div id="lblFooterNote">
+        Giá trị &amp; Công sức giới hạn 1–100 điểm • Dữ liệu tự động lưu cục bộ &amp; Google Drive
+      </div>
+    </footer>
+  </div>
+
+  <!-- =========================================================================
+       MODAL 1: THÊM / SỬA CÔNG VIỆC CHÍNH (MAIN TASK)
+       ========================================================================= -->
+  <div id="mainTaskModal" class="fixed inset-0 z-50 hidden items-center justify-center p-3 sm:p-4 bg-slate-950/60 backdrop-blur-xs">
+    <div class="theme-surface w-full max-w-2xl max-h-[92vh] flex flex-col rounded-2xl shadow-2xl border overflow-hidden animate-fade-in">
+      <div class="flex items-center justify-between px-5 py-3.5 border-b theme-border shrink-0">
+        <h3 id="mainTaskModalTitle" class="text-base font-bold theme-text-primary">Thêm công việc mới</h3>
+        <button type="button" id="btnCloseMainTaskModal" class="p-1.5 rounded-lg theme-text-muted hover:bg-slate-500/10 transition cursor-pointer">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <form id="mainTaskForm" class="flex-1 overflow-y-auto custom-scroll p-5 space-y-4">
+        <!-- Tên công việc chính -->
+        <div>
+          <label for="mainTaskTitleInput" id="lblMainTaskTitle" class="block text-xs font-semibold theme-text-secondary mb-1.5">
+            Tên công việc chính <span class="text-rose-500">*</span>
+          </label>
+          <input id="mainTaskTitleInput" type="text" required placeholder="VD: Tối ưu hiệu năng trang chủ"
+            class="w-full px-3.5 py-2 text-sm rounded-xl border theme-input focus:outline-none focus:ring-2 focus:ring-indigo-500/30" />
+        </div>
+
+        <!-- Chọn Tag -->
+        <div class="space-y-2">
+          <div class="flex items-center justify-between">
+            <label id="lblMainTaskTags" class="block text-xs font-semibold theme-text-secondary">Thẻ (Tags)</label>
+          </div>
+          <div id="mainTaskTagSelector" class="flex flex-wrap gap-1.5 min-h-[30px]"></div>
+
+          <!-- Tạo nhanh Tag ngay trong modal -->
+          <div class="flex flex-wrap items-center gap-2 pt-1">
+            <input id="quickTagNameInput" type="text" placeholder="Tạo nhanh tag mới..."
+              class="flex-1 min-w-[160px] px-3 py-1.5 text-xs rounded-xl border theme-input focus:outline-none focus:ring-2 focus:ring-indigo-500/30" />
+            <div id="quickTagColorPicker" class="flex items-center gap-1"></div>
+            <button id="btnQuickAddTag" type="button"
+              class="px-3 py-1.5 text-xs font-semibold rounded-xl theme-subtle theme-text-secondary border hover:border-indigo-400 transition cursor-pointer">
+              + Tag
+            </button>
+          </div>
+        </div>
+
+        <!-- Danh sách Task nhỏ (Subtasks) khi tạo mới -->
+        <div id="draftSubtasksSection" class="space-y-2.5 pt-2 border-t theme-border">
+          <div class="flex items-center justify-between">
+            <label id="lblDraftSubtasks" class="text-xs font-semibold theme-text-secondary">
+              Danh sách Task nhỏ (Giá trị &amp; Công sức từ 1–100)
+            </label>
+            <button id="btnAddDraftSubtask" type="button"
+              class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 hover:bg-indigo-500/20 rounded-lg transition cursor-pointer">
+              + <span id="lblBtnAddDraftRow">Thêm task nhỏ</span>
+            </button>
+          </div>
+          <div id="draftSubtasksList" class="space-y-2"></div>
+        </div>
+
+        <p id="mainTaskFormError" class="text-xs font-medium text-rose-500 hidden"></p>
+      </form>
+
+      <div class="flex items-center justify-end gap-2 px-5 py-3 border-t theme-border theme-surface-alt shrink-0">
+        <button type="button" id="btnCancelMainTaskModal"
+          class="px-4 py-1.5 text-sm font-medium theme-text-secondary hover:bg-slate-500/10 rounded-xl transition cursor-pointer">
+          Hủy
+        </button>
+        <button type="submit" form="mainTaskForm" id="btnSaveMainTask"
+          class="px-4 py-1.5 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-xs transition cursor-pointer">
+          Lưu công việc
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       MODAL 2: THÊM / SỬA TASK NHỎ (SUBTASK)
+       ========================================================================= -->
+  <div id="subtaskModal" class="fixed inset-0 z-50 hidden items-center justify-center p-3 sm:p-4 bg-slate-950/60 backdrop-blur-xs">
+    <div class="theme-surface w-full max-w-lg rounded-2xl shadow-2xl border overflow-hidden animate-fade-in">
+      <div class="flex items-center justify-between px-5 py-3.5 border-b theme-border">
+        <div>
+          <h3 id="subtaskModalTitle" class="text-base font-bold theme-text-primary">Thêm task nhỏ</h3>
+          <p id="subtaskParentName" class="text-xs theme-text-muted mt-0.5 truncate max-w-[360px]"></p>
+        </div>
+        <button type="button" id="btnCloseSubtaskModal" class="p-1.5 rounded-lg theme-text-muted hover:bg-slate-500/10 transition cursor-pointer">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <form id="subtaskForm" class="p-5 space-y-4">
+        <input type="hidden" id="subtaskParentIdInput" />
+        <input type="hidden" id="subtaskIdInput" />
+
+        <div>
+          <label for="subtaskDescInput" id="lblSubtaskDesc" class="block text-xs font-semibold theme-text-secondary mb-1.5">
+            Mô tả task nhỏ <span class="text-rose-500">*</span>
+          </label>
+          <textarea id="subtaskDescInput" rows="3" required placeholder="Mô tả chi tiết việc cần làm..."
+            class="w-full px-3.5 py-2 text-sm rounded-xl border theme-input focus:outline-none focus:ring-2 focus:ring-indigo-500/30 resize-y"></textarea>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label for="subtaskValueInput" id="lblSubtaskValue" class="block text-xs font-semibold theme-text-secondary mb-1">
+              Giá trị (1–100) <span class="text-rose-500">*</span>
+            </label>
+            <input id="subtaskValueInput" type="number" min="1" max="100" step="any" required value="50"
+              class="w-full px-3 py-2 text-sm font-semibold rounded-xl border theme-input focus:outline-none focus:ring-2 focus:ring-indigo-500/30" />
+          </div>
+          <div>
+            <label for="subtaskEffortInput" id="lblSubtaskEffort" class="block text-xs font-semibold theme-text-secondary mb-1">
+              Công sức (1–100) <span class="text-rose-500">*</span>
+            </label>
+            <input id="subtaskEffortInput" type="number" min="1" max="100" step="any" required value="25"
+              class="w-full px-3 py-2 text-sm font-semibold rounded-xl border theme-input focus:outline-none focus:ring-2 focus:ring-indigo-500/30" />
+          </div>
+          <div>
+            <label for="subtaskStatusSelect" id="lblSubtaskStatus" class="block text-xs font-semibold theme-text-secondary mb-1">
+              Trạng thái
+            </label>
+            <select id="subtaskStatusSelect"
+              class="w-full px-3 py-2 text-sm font-medium rounded-xl border theme-input focus:outline-none focus:ring-2 focus:ring-indigo-500/30 cursor-pointer">
+              <option value="backlog">Tồn đọng</option>
+              <option value="todo">Cần làm</option>
+              <option value="in_progress">Đang làm</option>
+              <option value="done">Hoàn thành</option>
+              <option value="aborted">Hủy bỏ</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Live ROI Preview -->
+        <div class="flex items-center justify-between px-3.5 py-2.5 rounded-xl border theme-surface-alt">
+          <span id="lblSubtaskRoiPreview" class="text-xs font-medium theme-text-muted">Chỉ số ROI dự kiến (Giá trị / Công sức):</span>
+          <span id="subtaskRoiPreviewBadge" class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">2.00</span>
+        </div>
+
+        <p id="subtaskFormError" class="text-xs font-medium text-rose-500 hidden"></p>
+      </form>
+
+      <div class="flex items-center justify-end gap-2 px-5 py-3 border-t theme-border theme-surface-alt">
+        <button type="button" id="btnCancelSubtaskModal"
+          class="px-4 py-1.5 text-sm font-medium theme-text-secondary hover:bg-slate-500/10 rounded-xl transition cursor-pointer">
+          Hủy
+        </button>
+        <button type="submit" form="subtaskForm" id="btnSaveSubtask"
+          class="px-4 py-1.5 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-xs transition cursor-pointer">
+          Lưu task nhỏ
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       MODAL 3: QUẢN LÝ TAG ĐỘC LẬP (THÊM / SỬA / XÓA)
+       ========================================================================= -->
+  <div id="tagManagerModal" class="fixed inset-0 z-50 hidden items-center justify-center p-3 sm:p-4 bg-slate-950/60 backdrop-blur-xs">
+    <div class="theme-surface w-full max-w-lg max-h-[90vh] flex flex-col rounded-2xl shadow-2xl border overflow-hidden animate-fade-in">
+      <div class="flex items-center justify-between px-5 py-3.5 border-b theme-border shrink-0">
+        <h3 id="tagModalTitle" class="text-base font-bold theme-text-primary">Quản lý Tag</h3>
+        <button type="button" id="btnCloseTagModal" class="p-1.5 rounded-lg theme-text-muted hover:bg-slate-500/10 transition cursor-pointer">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <div class="p-5 space-y-4 overflow-y-auto custom-scroll flex-1">
+        <!-- Form tạo tag mới -->
+        <form id="createTagForm" class="p-3.5 rounded-xl border theme-surface-alt space-y-2.5">
+          <div class="flex items-center gap-2">
+            <input id="newTagNameInput" type="text" placeholder="Tên tag mới (VD: Frontend, Khẩn cấp)..."
+              class="flex-1 px-3 py-1.5 text-sm rounded-xl border theme-input focus:outline-none focus:ring-2 focus:ring-indigo-500/30" />
+            <button id="btnCreateTag" type="submit"
+              class="px-3.5 py-1.5 text-xs sm:text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-xs transition cursor-pointer shrink-0">
+              Tạo Tag
+            </button>
+          </div>
+          <div class="flex items-center justify-between gap-2">
+            <span id="lblPickTagColor" class="text-xs theme-text-muted">Chọn màu:</span>
+            <div id="newTagColorPicker" class="flex flex-wrap items-center gap-1.5"></div>
+          </div>
+          <p id="tagFormError" class="text-xs font-medium text-rose-500 hidden"></p>
+        </form>
+
+        <!-- Danh sách Tag hiện có -->
+        <div id="tagManagerList" class="space-y-2"></div>
+      </div>
+
+      <div class="flex items-center justify-end px-5 py-3 border-t theme-border theme-surface-alt shrink-0">
+        <button type="button" id="btnDoneTagModal"
+          class="px-4 py-1.5 text-sm font-semibold theme-text-secondary theme-surface border hover:opacity-85 rounded-xl transition cursor-pointer">
+          Đóng
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       MODAL 4: XÁC NHẬN XÓA (THAY THẾ CONFIRM())
+       ========================================================================= -->
+  <div id="confirmModal" class="fixed inset-0 z-[60] hidden items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs">
+    <div class="theme-surface w-full max-w-sm rounded-2xl shadow-2xl border p-5 animate-fade-in">
+      <h3 id="confirmModalTitle" class="text-base font-bold theme-text-primary">Xác nhận xóa</h3>
+      <p id="confirmModalMessage" class="text-sm theme-text-secondary mt-2 leading-relaxed"></p>
+      <div class="flex items-center justify-end gap-2 mt-5">
+        <button type="button" id="btnConfirmCancel"
+          class="px-4 py-1.5 text-sm font-medium theme-text-secondary hover:bg-slate-500/10 rounded-xl transition cursor-pointer">
+          Hủy
+        </button>
+        <button type="button" id="btnConfirmOk"
+          class="px-4 py-1.5 text-sm font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-xl shadow-sm transition cursor-pointer">
+          Xóa ngay
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       MODAL 5: CẤU HÌNH & ĐỒNG BỘ GOOGLE DRIVE (OAUTH 2.0 + DRIVE API V3)
+       ========================================================================= -->
+  <div id="driveModal" class="fixed inset-0 z-50 hidden items-center justify-center p-3 sm:p-4 bg-slate-950/60 backdrop-blur-xs">
+    <div class="theme-surface w-full max-w-xl max-h-[92vh] flex flex-col rounded-2xl shadow-2xl border overflow-hidden animate-fade-in">
+      <div class="flex items-center justify-between px-5 py-3.5 border-b theme-border shrink-0">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-xl bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
+            </svg>
+          </div>
+          <div>
+            <h3 id="driveModalTitle" class="text-base font-bold theme-text-primary">Đồng bộ Google Drive</h3>
+            <p id="driveModalSubtitle" class="text-xs theme-text-muted mt-0.5">Lưu trữ an toàn trên Drive cá nhân (roi-task-manager-data.json)</p>
+          </div>
+        </div>
+        <button type="button" id="btnCloseDriveModal" class="p-1.5 rounded-lg theme-text-muted hover:bg-slate-500/10 transition cursor-pointer">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <div class="flex-1 overflow-y-auto custom-scroll p-5 space-y-4">
+        <!-- Trạng thái kết nối hiện tại -->
+        <div class="p-3.5 rounded-xl border theme-surface-alt flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div class="flex items-center gap-2.5 min-w-0">
+            <span id="driveModalDot" class="w-2.5 h-2.5 rounded-full bg-slate-400 shrink-0"></span>
+            <div class="min-w-0">
+              <div id="driveModalStatusLabel" class="text-xs font-bold theme-text-primary truncate">Chưa kết nối</div>
+              <div id="driveModalActiveEmail" class="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 truncate hidden"></div>
+              <div id="driveModalLastSync" class="text-[11px] theme-text-muted mt-0.5">Chưa có lần đồng bộ nào</div>
+            </div>
+          </div>
+          <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-mono theme-subtle theme-text-secondary border shrink-0">
+            roi-task-manager-data.json
+          </span>
+        </div>
+
+        <!-- Danh sách tài khoản Google đã kết nối (Hỗ trợ nhiều tài khoản) -->
+        <div id="driveAccountsSection" class="space-y-2">
+          <div class="flex items-center justify-between gap-2">
+            <span id="lblDriveAccountsTitle" class="text-xs font-semibold theme-text-secondary">Tài khoản Google đã kết nối</span>
+            <button id="btnDriveSwitchAccount" type="button"
+              class="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 hover:bg-indigo-500/20 rounded-lg transition cursor-pointer">
+              + <span id="lblBtnDriveAddAccount">Chọn / Thêm tài khoản khác</span>
+            </button>
+          </div>
+          <div id="driveAccountsList" class="space-y-1.5"></div>
+        </div>
+
+        <!-- Nhập Google OAuth Client ID -->
+        <div class="space-y-2">
+          <label for="driveClientIdInput" id="lblDriveClientId" class="block text-xs font-semibold theme-text-secondary">
+            Google OAuth 2.0 Web Client ID
+          </label>
+          <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+            <input id="driveClientIdInput" type="text" placeholder="xxxxxxxxxxxx-xxxxxxxxxxxxxxxx.apps.googleusercontent.com"
+              class="flex-1 px-3 py-2 text-xs sm:text-sm font-mono rounded-xl border theme-input focus:outline-none focus:ring-2 focus:ring-indigo-500/30" />
+            <button id="btnSaveDriveClientId" type="button"
+              class="px-3.5 py-2 text-xs font-semibold theme-text-secondary theme-subtle hover:opacity-85 border rounded-xl transition cursor-pointer shrink-0">
+              Lưu Client ID
+            </button>
+          </div>
+          <p id="driveModalError" class="text-xs font-medium text-rose-500 hidden"></p>
+        </div>
+
+        <!-- Các nút thao tác đồng bộ -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+          <button id="btnDriveConnect" type="button"
+            class="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 text-xs sm:text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-xs transition cursor-pointer">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+            </svg>
+            <span id="lblBtnDriveConnect">Kết nối / Đăng nhập Google</span>
+          </button>
+
+          <button id="btnDriveSaveNow" type="button" disabled
+            class="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 text-xs sm:text-sm font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-500/15 hover:bg-emerald-500/25 disabled:opacity-45 disabled:cursor-not-allowed rounded-xl transition cursor-pointer">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+            </svg>
+            <span id="lblBtnDriveSaveNow">Lưu lên Drive ngay</span>
+          </button>
+
+          <button id="btnDriveLoadNow" type="button" disabled
+            class="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 text-xs sm:text-sm font-semibold text-sky-700 dark:text-sky-300 bg-sky-500/15 hover:bg-sky-500/25 disabled:opacity-45 disabled:cursor-not-allowed rounded-xl transition cursor-pointer">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+            </svg>
+            <span id="lblBtnDriveLoadNow">Tải từ Drive về</span>
+          </button>
+
+          <button id="btnDriveDisconnect" type="button" disabled
+            class="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 text-xs sm:text-sm font-semibold text-rose-600 dark:text-rose-400 bg-rose-500/10 hover:bg-rose-500/20 disabled:opacity-45 disabled:cursor-not-allowed rounded-xl transition cursor-pointer">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+            <span id="lblBtnDriveDisconnect">Ngắt kết nối</span>
+          </button>
+        </div>
+
+        <!-- Hướng dẫn nhanh lấy Client ID -->
+        <div class="p-3.5 rounded-xl border theme-border theme-surface-alt space-y-2 text-xs theme-text-secondary">
+          <div id="lblDriveGuideTitle" class="font-bold theme-text-primary">Hướng dẫn tạo Google OAuth Client ID (3 bước):</div>
+          <ol id="driveGuideSteps" class="list-decimal list-inside space-y-1 leading-relaxed">
+            <li>Mở <strong>Google Cloud Console</strong> → tạo Project → vào <strong>APIs &amp; Services → Library</strong> và bật <strong>Google Drive API</strong>.</li>
+            <li>Vào <strong>OAuth consent screen</strong> (chọn External), thêm email của bạn vào mục <strong>Test users</strong>.</li>
+            <li>Vào <strong>Credentials → Create Credentials → OAuth client ID (Web application)</strong>, thêm Origin bên dưới vào <strong>Authorized JavaScript origins</strong> rồi copy Client ID dán lên trên.</li>
+          </ol>
+          <div class="pt-1.5 flex items-center justify-between gap-2 border-t theme-border">
+            <div class="min-w-0">
+              <span id="lblDriveOrigin" class="text-[11px] theme-text-muted">Origin hiện tại:</span>
+              <code id="driveCurrentOrigin" class="ml-1 text-[11px] font-mono font-semibold text-indigo-600 dark:text-indigo-400 break-all"></code>
+            </div>
+            <button id="btnCopyOrigin" type="button"
+              class="px-2.5 py-1 text-[11px] font-semibold theme-surface border rounded-lg hover:border-indigo-400 transition cursor-pointer shrink-0">
+              Copy
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-end px-5 py-3 border-t theme-border theme-surface-alt shrink-0">
+        <button type="button" id="btnDoneDriveModal"
+          class="px-4 py-1.5 text-sm font-semibold theme-text-secondary theme-surface border hover:opacity-85 rounded-xl transition cursor-pointer">
+          Đóng
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container (Thay thế alert()) -->
+  <div id="toastContainer" class="fixed bottom-4 right-4 z-[70] flex flex-col gap-2 max-w-sm pointer-events-none"></div>
+
+  <!-- =========================================================================
+       JAVASCRIPT APPLICATION LOGIC
+       ========================================================================= -->
+  <script>
+    (function () {
+      'use strict';
+
+      // =========================================================================
+      // 1. TỪ ĐIỂN ĐA NGÔN NGỮ (VI ↔ EN)
+      // =========================================================================
+      const I18N = {
+        vi: {
+          pageTitle: 'Quản Lý Task Tối Ưu ROI',
+          appTitle: 'Quản Lý Task Tối Ưu ROI',
+          appSubtitle: 'Phân rã công việc • Đánh giá Giá trị / Công sức (1–100) • Đồng bộ Google Drive',
+          btnTags: 'Quản lý Tag',
+          btnExport: 'Xuất JSON',
+          btnImport: 'Nhập JSON',
+          btnAddTask: 'Thêm công việc',
+
+          statMain: 'Công việc chính:',
+          statSub: 'Task nhỏ:',
+          statAvgRoi: 'ROI TB:',
+          statDoneRate: 'Tỷ lệ hoàn thành:',
+
+          viewTable: 'Bảng',
+          viewKanban: 'Kanban',
+          statusAll: 'Tất cả',
+          statusBacklog: 'Tồn đọng',
+          statusTodo: 'Cần làm',
+          statusInProgress: 'Đang làm',
+          statusDone: 'Hoàn thành',
+          statusAborted: 'Hủy bỏ',
+
+          // Cảnh báo quá hạn trạng thái Cần làm (> 7 ngày)
+          todoOverdueBannerText: (n) => `Cảnh báo: Có ${n} task nhỏ đang ở trạng thái "Cần làm" quá 7 ngày!`,
+          btnOverdueFilterTodo: 'Xem danh sách Cần làm',
+          statOverdueText: (n) => `${n} quá hạn >7 ngày`,
+          badgeTodoOverdue: (days) => `⚠ Quá hạn: ${days} ngày ở Cần làm`,
+          todoSincePrefix: 'Cần làm:',
+
+          lblSortBy: 'Sắp xếp:',
+          sortRoiDesc: 'ROI: Cao → Thấp',
+          sortValueDesc: 'Giá trị: Cao → Thấp',
+          sortEffortAsc: 'Công sức: Thấp → Cao',
+          sortCreatedDesc: 'Ngày tạo: Mới nhất',
+          sortCompletedDesc: 'Ngày hoàn thành: Mới nhất',
+          searchPlaceholder: 'Tìm công việc, mô tả, tag...',
+          lblTagFilter: 'Lọc Tag:',
+          tagAll: 'Tất cả Tag',
+          noTagsYet: 'Chưa có tag nào',
+
+          thMainTask: 'Công việc chính',
+          thSubtask: 'Task nhỏ & Thời gian',
+          thStatus: 'Trạng thái',
+          thValue: 'Giá trị',
+          thEffort: 'Công sức',
+          thRoi: 'ROI',
+          thActions: 'Thao tác',
+          labelValueShort: 'Giá trị',
+          labelEffortShort: 'Công sức',
+          createdPrefix: 'Tạo:',
+          completedPrefix: 'Xong:',
+          btnAddSubtaskInline: '+ Task nhỏ',
+          tooltipEditTask: 'Sửa công việc chính',
+          tooltipDeleteTask: 'Xóa công việc chính',
+          tooltipAddSub: 'Thêm task nhỏ',
+          tooltipEditSub: 'Sửa task nhỏ',
+          tooltipDeleteSub: 'Xóa task nhỏ',
+          kanbanEmptyCol: 'Kéo thả task vào đây',
+
+          emptyNoDataTitle: 'Chưa có công việc nào',
+          emptyNoDataDesc: 'Bấm "+ Thêm công việc đầu tiên" bên dưới hoặc trên thanh công cụ để bắt đầu.',
+          emptyNoMatchTitle: 'Không tìm thấy kết quả phù hợp',
+          emptyNoMatchDesc: 'Thử xóa bộ lọc Trạng thái, Tag hoặc từ khóa tìm kiếm.',
+          btnClearFilters: 'Xóa bộ lọc',
+          btnEmptyAddTask: 'Thêm công việc đầu tiên',
+
+          // Modal Main Task
+          modalAddMainTitle: 'Thêm công việc mới',
+          modalEditMainTitle: 'Chỉnh sửa công việc chính',
+          lblMainTaskTitle: 'Tên công việc chính',
+          mainTaskPlaceholder: 'VD: Tối ưu hiệu năng trang chủ',
+          lblMainTaskTags: 'Thẻ (Tags)',
+          quickTagPlaceholder: 'Tạo nhanh tag mới...',
+          lblDraftSubtasks: 'Danh sách Task nhỏ (Giá trị & Công sức từ 1–100)',
+          lblBtnAddDraftRow: 'Thêm task nhỏ',
+          draftDescPlaceholder: 'Mô tả task nhỏ...',
+          btnCancel: 'Hủy',
+          btnClose: 'Đóng',
+          btnSaveMainTask: 'Lưu công việc',
+
+          // Modal Subtask
+          modalAddSubTitle: 'Thêm task nhỏ',
+          modalEditSubTitle: 'Chỉnh sửa task nhỏ',
+          lblSubtaskDesc: 'Mô tả task nhỏ',
+          subtaskDescPlaceholder: 'Mô tả chi tiết việc cần làm...',
+          lblSubtaskValue: 'Giá trị (1–100)',
+          lblSubtaskEffort: 'Công sức (1–100)',
+          lblSubtaskStatus: 'Trạng thái',
+          lblSubtaskRoiPreview: 'Chỉ số ROI dự kiến (Giá trị / Công sức):',
+          btnSaveSubtask: 'Lưu task nhỏ',
+
+          // Modal Tag Manager
+          tagModalTitle: 'Quản lý Tag',
+          newTagPlaceholder: 'Tên tag mới (VD: Frontend, Khẩn cấp)...',
+          btnCreateTag: 'Tạo Tag',
+          lblPickTagColor: 'Chọn màu:',
+          tagUsageCount: (n) => `${n} công việc`,
+          btnEdit: 'Sửa',
+          btnSave: 'Lưu',
+          btnDelete: 'Xóa',
+
+          // Confirm Modal
+          confirmTitle: 'Xác nhận xóa',
+          confirmDeleteTask: (name) => `Bạn có chắc muốn xóa công việc "${name}" và toàn bộ task nhỏ bên trong?`,
+          confirmDeleteSub: (desc) => `Bạn có chắc muốn xóa task nhỏ "${desc}"?`,
+          confirmDeleteTag: (name) => `Xóa tag "${name}"? Tag này sẽ được gỡ khỏi tất cả các công việc đang gắn.`,
+          btnConfirmDelete: 'Xóa ngay',
+
+          // Google Drive
+          driveHeaderDisconnected: 'Drive: Chưa kết nối',
+          driveHeaderSyncing: 'Drive: Đang đồng bộ...',
+          driveHeaderSynced: (timeStr) => `Drive: Đã lưu ${timeStr}`,
+          driveHeaderConnected: 'Drive: Đã kết nối',
+          driveHeaderExpired: 'Drive: Hết phiên',
+          driveExpiredBannerText: 'Phiên Google Drive đã hết hạn — Bấm để kết nối lại và tự động tải dữ liệu mới nhất.',
+          btnBannerReconnect: 'Kết nối lại & Tải dữ liệu',
+          driveModalTitle: 'Đồng bộ Google Drive',
+          driveModalSubtitle: 'Lưu trữ an toàn trên Drive cá nhân (roi-task-manager-data.json)',
+          lblDriveAccountsTitle: 'Tài khoản Google đã kết nối',
+          lblBtnDriveAddAccount: 'Chọn / Thêm tài khoản khác',
+          driveNoAccountsYet: 'Chưa có tài khoản nào. Bấm kết nối để chọn tài khoản Google.',
+          driveAccountActiveBadge: 'Đang dùng',
+          btnDriveUseAccount: 'Chuyển sang',
+          btnDriveRemoveAccount: 'Gỡ',
+          toastDriveSwitchedAccount: (email) => `Đã chuyển sang tài khoản ${email}!`,
+          toastDriveRemovedAccount: (email) => `Đã gỡ tài khoản ${email} khỏi danh sách.`,
+          lblDriveClientId: 'Google OAuth 2.0 Web Client ID',
+          btnSaveDriveClientId: 'Lưu Client ID',
+          btnDriveConnect: 'Kết nối / Đăng nhập Google',
+          btnDriveReconnect: 'Đăng nhập lại Google',
+          btnDriveSaveNow: 'Lưu lên Drive ngay',
+          btnDriveLoadNow: 'Tải từ Drive về',
+          btnDriveDisconnect: 'Ngắt kết nối',
+          driveStatusDisconnected: 'Chưa kết nối Google Drive',
+          driveStatusConnected: 'Đã kết nối Google Drive (Tự động lưu sau 1.5s)',
+          driveStatusSyncing: 'Đang đồng bộ với Google Drive...',
+          driveStatusExpired: 'Phiên đăng nhập đã hết hạn — Vui lòng đăng nhập lại',
+          driveLastSyncNone: 'Chưa có lần đồng bộ nào',
+          driveLastSyncAt: (dt) => `Đồng bộ lần cuối: ${dt}`,
+          lblDriveGuideTitle: 'Hướng dẫn tạo Google OAuth Client ID (3 bước):',
+          driveGuideHtml:
+            '<li>Mở <strong>Google Cloud Console</strong> → tạo Project → vào <strong>APIs &amp; Services → Library</strong> và bật <strong>Google Drive API</strong>.</li>' +
+            '<li>Vào <strong>OAuth consent screen</strong> (chọn External), thêm email của bạn vào mục <strong>Test users</strong>.</li>' +
+            '<li>Vào <strong>Credentials → Create Credentials → OAuth client ID (Web application)</strong>, thêm Origin bên dưới vào <strong>Authorized JavaScript origins</strong> rồi copy Client ID dán lên trên.</li>',
+          lblDriveOrigin: 'Origin hiện tại:',
+          btnCopyOrigin: 'Copy',
+          toastOriginCopied: 'Đã sao chép Origin!',
+          errDriveClientIdReq: 'Vui lòng nhập Google OAuth Client ID trước khi kết nối.',
+          errDriveGisNotReady: 'Thư viện Google Identity Services chưa tải xong. Vui lòng thử lại sau vài giây.',
+          toastDriveClientIdSaved: 'Đã lưu Google Client ID.',
+          toastDriveConnected: 'Đã kết nối Google Drive thành công!',
+          toastDriveSaved: 'Đã lưu dữ liệu lên Google Drive!',
+          toastDriveLoaded: (tCount) => `Đã tải ${tCount} công việc từ Google Drive!`,
+          toastDriveNoRemoteFile: 'Chưa có file dữ liệu trên Drive — Đã tạo bản sao lưu mới từ dữ liệu hiện tại.',
+          toastDriveUpToDate: 'Dữ liệu hiện tại đã là bản mới nhất.',
+          toastDriveExpired: 'Phiên Google Drive đã hết hạn. Dữ liệu cục bộ vẫn được giữ an toàn — vui lòng kết nối lại.',
+          toastDriveDisconnected: 'Đã ngắt kết nối Google Drive.',
+          toastDriveAuthFailed: 'Đăng nhập Google thất bại hoặc đã bị hủy.',
+          toastDriveSyncError: 'Lỗi khi đồng bộ Google Drive. Vui lòng thử lại.',
+
+          legendTitle: 'Thang ROI:',
+          legendHigh: 'Cao (Ưu tiên)',
+          legendMid: 'Trung bình',
+          legendLow: 'Thấp',
+          footerNote: 'Giá trị & Công sức giới hạn 1–100 điểm • Dữ liệu tự động lưu cục bộ & Google Drive',
+
+          // Validation & Toast messages
+          errStorage: 'Không thể lưu dữ liệu vào trình duyệt.',
+          errTitleReq: 'Vui lòng nhập tên công việc chính.',
+          errDescReq: 'Vui lòng nhập mô tả cho task nhỏ.',
+          errScoreRange: 'Giá trị và Công sức phải là số lớn hơn 0 và nhỏ hơn hoặc bằng 100.',
+          errAtLeastOneSub: 'Cần có ít nhất 1 task nhỏ hợp lệ khi tạo công việc mới.',
+          errTagNameReq: 'Vui lòng nhập tên tag.',
+          errTagDuplicate: 'Tên tag này đã tồn tại.',
+          errImportInvalid: 'File JSON không đúng định dạng ứng dụng.',
+          toastTaskAdded: 'Đã thêm công việc mới!',
+          toastTaskUpdated: 'Đã cập nhật công việc chính!',
+          toastTaskDeleted: 'Đã xóa công việc.',
+          toastSubAdded: 'Đã thêm task nhỏ!',
+          toastSubUpdated: 'Đã cập nhật task nhỏ!',
+          toastSubDeleted: 'Đã xóa task nhỏ.',
+          toastStatusChanged: (st) => `Đã chuyển trạng thái sang "${st}".`,
+          toastTagCreated: 'Đã tạo tag mới!',
+          toastTagUpdated: 'Đã cập nhật tag!',
+          toastTagDeleted: 'Đã xóa tag.',
+          toastExportSuccess: 'Đã xuất file JSON sao lưu thành công!',
+          toastImportSuccess: (tCount, tagCount) => `Đã nhập ${tCount} công việc và ${tagCount} tag!`,
+          toastSortReset: 'Đã đặt lại sắp xếp theo ROI: Cao → Thấp.',
+        },
+
+        en: {
+          pageTitle: 'ROI Task Manager',
+          appTitle: 'ROI Task Manager',
+          appSubtitle: 'Break down tasks • Score Value / Effort (1–100) • Google Drive Sync',
+          btnTags: 'Manage Tags',
+          btnExport: 'Export JSON',
+          btnImport: 'Import JSON',
+          btnAddTask: 'Add Task',
+
+          statMain: 'Main tasks:',
+          statSub: 'Subtasks:',
+          statAvgRoi: 'Avg ROI:',
+          statDoneRate: 'Completion:',
+
+          viewTable: 'Table',
+          viewKanban: 'Kanban',
+          statusAll: 'All',
+          statusBacklog: 'Backlog',
+          statusTodo: 'To do',
+          statusInProgress: 'In progress',
+          statusDone: 'Done',
+          statusAborted: 'Aborted',
+
+          // Overdue warning for "To do" > 7 days
+          todoOverdueBannerText: (n) => `Warning: ${n} subtask${n === 1 ? '' : 's'} ha${n === 1 ? 's' : 've'} been in "To do" for over 7 days!`,
+          btnOverdueFilterTodo: 'View To do tasks',
+          statOverdueText: (n) => `${n} overdue >7d`,
+          badgeTodoOverdue: (days) => `⚠ Overdue: ${days}d in To do`,
+          todoSincePrefix: 'In To do:',
+
+          lblSortBy: 'Sort by:',
+          sortRoiDesc: 'ROI: High → Low',
+          sortValueDesc: 'Value: High → Low',
+          sortEffortAsc: 'Effort: Low → High',
+          sortCreatedDesc: 'Created: Newest',
+          sortCompletedDesc: 'Completed: Newest',
+          searchPlaceholder: 'Search tasks, subtasks, tags...',
+          lblTagFilter: 'Tag Filter:',
+          tagAll: 'All Tags',
+          noTagsYet: 'No tags yet',
+
+          thMainTask: 'Main Task',
+          thSubtask: 'Subtask & Timeline',
+          thStatus: 'Status',
+          thValue: 'Value',
+          thEffort: 'Effort',
+          thRoi: 'ROI',
+          thActions: 'Actions',
+          labelValueShort: 'Value',
+          labelEffortShort: 'Effort',
+          createdPrefix: 'Created:',
+          completedPrefix: 'Done:',
+          btnAddSubtaskInline: '+ Subtask',
+          tooltipEditTask: 'Edit main task',
+          tooltipDeleteTask: 'Delete main task',
+          tooltipAddSub: 'Add subtask',
+          tooltipEditSub: 'Edit subtask',
+          tooltipDeleteSub: 'Delete subtask',
+          kanbanEmptyCol: 'Drop tasks here',
+
+          emptyNoDataTitle: 'No tasks yet',
+          emptyNoDataDesc: 'Click "+ Add first task" below or in the header to get started.',
+          emptyNoMatchTitle: 'No matching results',
+          emptyNoMatchDesc: 'Try clearing Status, Tag filters, or your search query.',
+          btnClearFilters: 'Clear filters',
+          btnEmptyAddTask: 'Add first task',
+
+          // Modal Main Task
+          modalAddMainTitle: 'Add New Task',
+          modalEditMainTitle: 'Edit Main Task',
+          lblMainTaskTitle: 'Main task title',
+          mainTaskPlaceholder: 'e.g. Optimize homepage performance',
+          lblMainTaskTags: 'Tags',
+          quickTagPlaceholder: 'Quick-create a tag...',
+          lblDraftSubtasks: 'Subtasks (Value & Effort from 1–100)',
+          lblBtnAddDraftRow: 'Add subtask',
+          draftDescPlaceholder: 'Subtask description...',
+          btnCancel: 'Cancel',
+          btnClose: 'Close',
+          btnSaveMainTask: 'Save Task',
+
+          // Modal Subtask
+          modalAddSubTitle: 'Add Subtask',
+          modalEditSubTitle: 'Edit Subtask',
+          lblSubtaskDesc: 'Subtask description',
+          subtaskDescPlaceholder: 'Describe the work to be done...',
+          lblSubtaskValue: 'Value (1–100)',
+          lblSubtaskEffort: 'Effort (1–100)',
+          lblSubtaskStatus: 'Status',
+          lblSubtaskRoiPreview: 'Estimated ROI (Value / Effort):',
+          btnSaveSubtask: 'Save Subtask',
+
+          // Modal Tag Manager
+          tagModalTitle: 'Manage Tags',
+          newTagPlaceholder: 'New tag name (e.g. Frontend, Urgent)...',
+          btnCreateTag: 'Create Tag',
+          lblPickTagColor: 'Pick color:',
+          tagUsageCount: (n) => `${n} task${n === 1 ? '' : 's'}`,
+          btnEdit: 'Edit',
+          btnSave: 'Save',
+          btnDelete: 'Delete',
+
+          // Confirm Modal
+          confirmTitle: 'Confirm Deletion',
+          confirmDeleteTask: (name) => `Delete main task "${name}" and all of its subtasks?`,
+          confirmDeleteSub: (desc) => `Delete subtask "${desc}"?`,
+          confirmDeleteTag: (name) => `Delete tag "${name}"? It will be removed from all assigned tasks.`,
+          btnConfirmDelete: 'Delete',
+
+          // Google Drive
+          driveHeaderDisconnected: 'Drive: Disconnected',
+          driveHeaderSyncing: 'Drive: Syncing...',
+          driveHeaderSynced: (timeStr) => `Drive: Synced ${timeStr}`,
+          driveHeaderConnected: 'Drive: Connected',
+          driveHeaderExpired: 'Drive: Session expired',
+          driveExpiredBannerText: 'Google Drive session expired — Click to reconnect and auto-load your latest data.',
+          btnBannerReconnect: 'Reconnect & Load Data',
+          driveModalTitle: 'Google Drive Sync',
+          driveModalSubtitle: 'Securely store data on your personal Drive (roi-task-manager-data.json)',
+          lblDriveAccountsTitle: 'Connected Google Accounts',
+          lblBtnDriveAddAccount: 'Select / Add another account',
+          driveNoAccountsYet: 'No accounts connected yet. Click connect to choose a Google account.',
+          driveAccountActiveBadge: 'Active',
+          btnDriveUseAccount: 'Switch',
+          btnDriveRemoveAccount: 'Remove',
+          toastDriveSwitchedAccount: (email) => `Switched to ${email}!`,
+          toastDriveRemovedAccount: (email) => `Removed ${email} from account list.`,
+          lblDriveClientId: 'Google OAuth 2.0 Web Client ID',
+          btnSaveDriveClientId: 'Save Client ID',
+          btnDriveConnect: 'Connect / Sign in with Google',
+          btnDriveReconnect: 'Sign in with Google again',
+          btnDriveSaveNow: 'Save to Drive now',
+          btnDriveLoadNow: 'Load from Drive',
+          btnDriveDisconnect: 'Disconnect',
+          driveStatusDisconnected: 'Not connected to Google Drive',
+          driveStatusConnected: 'Connected to Google Drive (Auto-saves after 1.5s)',
+          driveStatusSyncing: 'Syncing with Google Drive...',
+          driveStatusExpired: 'Session expired — Please sign in again',
+          driveLastSyncNone: 'No sync recorded yet',
+          driveLastSyncAt: (dt) => `Last synced: ${dt}`,
+          lblDriveGuideTitle: 'How to create a Google OAuth Client ID (3 steps):',
+          driveGuideHtml:
+            '<li>Open <strong>Google Cloud Console</strong> → create a Project → go to <strong>APIs &amp; Services → Library</strong> and enable <strong>Google Drive API</strong>.</li>' +
+            '<li>Go to <strong>OAuth consent screen</strong> (External) and add your email under <strong>Test users</strong>.</li>' +
+            '<li>Go to <strong>Credentials → Create Credentials → OAuth client ID (Web application)</strong>, add the Origin below to <strong>Authorized JavaScript origins</strong>, then paste the Client ID above.</li>',
+          lblDriveOrigin: 'Current Origin:',
+          btnCopyOrigin: 'Copy',
+          toastOriginCopied: 'Origin copied to clipboard!',
+          errDriveClientIdReq: 'Please enter a Google OAuth Client ID before connecting.',
+          errDriveGisNotReady: 'Google Identity Services library is still loading. Please try again in a moment.',
+          toastDriveClientIdSaved: 'Google Client ID saved.',
+          toastDriveConnected: 'Connected to Google Drive!',
+          toastDriveSaved: 'Saved data to Google Drive!',
+          toastDriveLoaded: (tCount) => `Loaded ${tCount} main tasks from Google Drive!`,
+          toastDriveNoRemoteFile: 'No backup file on Drive yet — Uploaded current data to Drive.',
+          toastDriveUpToDate: 'Local data is already up to date.',
+          toastDriveExpired: 'Google Drive session expired. Local data is safe — please reconnect.',
+          toastDriveDisconnected: 'Disconnected from Google Drive.',
+          toastDriveAuthFailed: 'Google sign-in failed or was cancelled.',
+          toastDriveSyncError: 'Error syncing with Google Drive. Please try again.',
+
+          legendTitle: 'ROI Scale:',
+          legendHigh: 'High (Priority)',
+          legendMid: 'Medium',
+          legendLow: 'Low',
+          footerNote: 'Value & Effort range 1–100 • Auto-saved locally & to Google Drive',
+
+          // Validation & Toast messages
+          errStorage: 'Failed to save data to browser storage.',
+          errTitleReq: 'Please enter a main task title.',
+          errDescReq: 'Please enter a subtask description.',
+          errScoreRange: 'Value and Effort must be numbers greater than 0 and up to 100.',
+          errAtLeastOneSub: 'Please include at least 1 valid subtask when creating a task.',
+          errTagNameReq: 'Please enter a tag name.',
+          errTagDuplicate: 'A tag with this name already exists.',
+          errImportInvalid: 'Invalid JSON backup format.',
+          toastTaskAdded: 'New task added!',
+          toastTaskUpdated: 'Main task updated!',
+          toastTaskDeleted: 'Task deleted.',
+          toastSubAdded: 'Subtask added!',
+          toastSubUpdated: 'Subtask updated!',
+          toastSubDeleted: 'Subtask deleted.',
+          toastStatusChanged: (st) => `Status changed to "${st}".`,
+          toastTagCreated: 'Tag created!',
+          toastTagUpdated: 'Tag updated!',
+          toastTagDeleted: 'Tag deleted.',
+          toastExportSuccess: 'Backup JSON exported successfully!',
+          toastImportSuccess: (tCount, tagCount) => `Imported ${tCount} main tasks and ${tagCount} tags!`,
+          toastSortReset: 'Sort reset to ROI: High → Low.',
+        },
+      };
+
+      // =========================================================================
+      // 2. HẰNG SỐ, BẢNG MÀU TAG & TRẠNG THÁI
+      // =========================================================================
+      const STORAGE_KEY = 'roi_task_manager_v4';
+      const LEGACY_STORAGE_KEY = 'roi_task_manager_v3';
+      const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
+      const DRIVE_FILE_NAME = 'roi-task-manager-data.json';
+      const DRIVE_AUTOSAVE_DEBOUNCE_MS = 1500;
+      const TODO_OVERDUE_DAYS = 7;
+      const TODO_OVERDUE_MS = TODO_OVERDUE_DAYS * 24 * 60 * 60 * 1000;
+      const VALID_STATUSES = ['backlog', 'todo', 'in_progress', 'done', 'aborted'];
+      const VALID_SORTS = ['roi_desc', 'value_desc', 'effort_asc', 'created_desc', 'completed_desc'];
+
+      const TAG_COLORS = [
+        { key: 'indigo', swatch: 'bg-indigo-500', badge: 'bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border-indigo-500/30', border: '#6366f1' },
+        { key: 'sky', swatch: 'bg-sky-500', badge: 'bg-sky-500/15 text-sky-700 dark:text-sky-300 border-sky-500/30', border: '#0ea5e9' },
+        { key: 'emerald', swatch: 'bg-emerald-500', badge: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30', border: '#10b981' },
+        { key: 'amber', swatch: 'bg-amber-500', badge: 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30', border: '#f59e0b' },
+        { key: 'rose', swatch: 'bg-rose-500', badge: 'bg-rose-500/15 text-rose-700 dark:text-rose-300 border-rose-500/30', border: '#f43f5e' },
+        { key: 'violet', swatch: 'bg-violet-500', badge: 'bg-violet-500/15 text-violet-700 dark:text-violet-300 border-violet-500/30', border: '#8b5cf6' },
+        { key: 'teal', swatch: 'bg-teal-500', badge: 'bg-teal-500/15 text-teal-700 dark:text-teal-300 border-teal-500/30', border: '#14b8a6' },
+        { key: 'orange', swatch: 'bg-orange-500', badge: 'bg-orange-500/15 text-orange-700 dark:text-orange-300 border-orange-500/30', border: '#f97316' },
+        { key: 'pink', swatch: 'bg-pink-500', badge: 'bg-pink-500/15 text-pink-700 dark:text-pink-300 border-pink-500/30', border: '#ec4899' },
+        { key: 'slate', swatch: 'bg-slate-500', badge: 'bg-slate-500/15 text-slate-700 dark:text-slate-300 border-slate-500/30', border: '#64748b' },
+      ];
+
+      const STATUS_STYLES = {
+        backlog: {
+          dot: 'bg-slate-500',
+          select: 'bg-slate-500/10 text-slate-700 dark:text-slate-300 border-slate-400/30',
+          colHeader: 'border-t-slate-500',
+        },
+        todo: {
+          dot: 'bg-violet-500',
+          select: 'bg-violet-500/10 text-violet-700 dark:text-violet-300 border-violet-400/30',
+          colHeader: 'border-t-violet-500',
+        },
+        in_progress: {
+          dot: 'bg-sky-500',
+          select: 'bg-sky-500/10 text-sky-700 dark:text-sky-300 border-sky-400/30',
+          colHeader: 'border-t-sky-500',
+        },
+        done: {
+          dot: 'bg-emerald-500',
+          select: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-400/30',
+          colHeader: 'border-t-emerald-500',
+        },
+        aborted: {
+          dot: 'bg-rose-500',
+          select: 'bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-400/30',
+          colHeader: 'border-t-rose-500',
+        },
+      };
+
+      // Trạng thái toàn cục
+      const state = {
+        tags: [],
+        tasks: [],
+        updatedAt: null,
+        language: 'vi',          // 'vi' | 'en'
+        theme: 'light',          // 'light' | 'dark'
+        viewMode: 'table',       // 'table' | 'kanban'
+        sortBy: 'roi_desc',      // 'roi_desc' | 'value_desc' | 'effort_asc' | 'created_desc' | 'completed_desc'
+        statusFilter: 'all',     // 'all' | 'backlog' | 'todo' | 'in_progress' | 'done' | 'aborted'
+        tagFilter: 'all',        // 'all' | tagId
+        searchQuery: '',
+        editingTagId: null,
+        newTagColor: 'indigo',
+        quickTagColor: 'sky',
+
+        // Trạng thái đồng bộ Google Drive (Hỗ trợ nhiều tài khoản)
+        driveClientId: '',
+        driveFileId: '',
+        driveEnabled: false,
+        lastSyncAt: null,
+        driveAccounts: [],       // [{ email, name, photo, fileId, lastSyncAt }]
+        activeDriveEmail: '',
+        driveStatus: 'disconnected', // 'disconnected' | 'syncing' | 'synced' | 'expired'
+        driveAccessToken: '',
+        driveTokenExpiresAt: 0,
+        driveBannerDismissed: false,
+        todoBannerDismissed: false,
+      };
+
+      // Trạng thái tạm cho Modal Công việc chính
+      const mainTaskModalState = {
+        mode: 'add',
+        taskId: null,
+        selectedTagIds: new Set(),
+        draftSubtasks: [],
+      };
+
+      let draggedPayload = null;
+      let pendingConfirmCallback = null;
+      let gisTokenClient = null;
+      let gisTokenClientIdUsed = '';
+      let driveAutoSaveTimer = null;
+      let pendingTokenSuccessCallback = null;
+      let pendingTokenErrorCallback = null;
+
+      // =========================================================================
+      // 3. HÀM TIỆN ÍCH (HELPERS)
+      // =========================================================================
+      function t(key) {
+        const dict = I18N[state.language] || I18N.vi;
+        return dict[key] !== undefined ? dict[key] : key;
+      }
+
+      function getStatusLabel(status) {
+        if (status === 'backlog') return t('statusBacklog');
+        if (status === 'todo') return t('statusTodo');
+        if (status === 'in_progress') return t('statusInProgress');
+        if (status === 'done') return t('statusDone');
+        if (status === 'aborted') return t('statusAborted');
+        return status;
+      }
+
+      function getTodoElapsedMs(sub) {
+        if (!sub || sub.status !== 'todo') return 0;
+        const refIso = sub.todoSince || sub.createdAt;
+        if (!refIso) return 0;
+        const refTime = new Date(refIso).getTime();
+        if (Number.isNaN(refTime)) return 0;
+        return Math.max(0, Date.now() - refTime);
+      }
+
+      function getTodoElapsedDays(sub) {
+        return Math.floor(getTodoElapsedMs(sub) / (24 * 60 * 60 * 1000));
+      }
+
+      function isTodoOverdue(sub) {
+        return Boolean(sub && sub.status === 'todo' && getTodoElapsedMs(sub) > TODO_OVERDUE_MS);
+      }
+
+      function getOverdueTodoCount() {
+        let count = 0;
+        for (const task of state.tasks) {
+          for (const sub of task.subtasks) {
+            if (isTodoOverdue(sub)) count += 1;
+          }
+        }
+        return count;
+      }
+
+      function generateId(prefix = 'id') {
+        return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+      }
+
+      function clampScore(val) {
+        const num = Number(val);
+        if (!Number.isFinite(num) || num <= 0) return 1;
+        if (num > 100) return 100;
+        return Math.round(num * 100) / 100;
+      }
+
+      function isValidScore(val) {
+        const num = Number(val);
+        return Number.isFinite(num) && num > 0 && num <= 100;
+      }
+
+      function calcRoi(value, effort) {
+        const v = Number(value);
+        const e = Number(effort);
+        if (!Number.isFinite(v) || !Number.isFinite(e) || e <= 0) return 0;
+        return Math.round((v / e) * 100) / 100;
+      }
+
+      function getRoiBadgeClass(roi) {
+        if (roi >= 2) return 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30';
+        if (roi >= 1) return 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30';
+        return 'bg-slate-500/15 text-slate-600 dark:text-slate-300 border border-slate-500/25';
+      }
+
+      function getTagColorConfig(colorKey) {
+        return TAG_COLORS.find((c) => c.key === colorKey) || TAG_COLORS[0];
+      }
+
+      function getTaskAccentColor(task) {
+        if (task.tagIds && task.tagIds.length > 0) {
+          const firstTag = state.tags.find((tg) => tg.id === task.tagIds[0]);
+          if (firstTag) return getTagColorConfig(firstTag.color).border;
+        }
+        return '#6366f1';
+      }
+
+      function formatDateTime(iso) {
+        if (!iso) return '';
+        const d = new Date(iso);
+        if (Number.isNaN(d.getTime())) return '';
+        const pad = (n) => String(n).padStart(2, '0');
+        return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      }
+
+      function formatTimeOnly(iso) {
+        if (!iso) return '';
+        const d = new Date(iso);
+        if (Number.isNaN(d.getTime())) return '';
+        const pad = (n) => String(n).padStart(2, '0');
+        return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      }
+
+      function escapeHtml(str) {
+        return String(str ?? '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      }
+
+      function showToast(message, type = 'info') {
+        const container = document.getElementById('toastContainer');
+        const toast = document.createElement('div');
+        const colorMap = {
+          success: 'bg-emerald-600 text-white',
+          error: 'bg-rose-600 text-white',
+          info: 'bg-slate-900 dark:bg-slate-700 text-white',
+        };
+        toast.className = `pointer-events-auto px-4 py-2.5 rounded-xl shadow-lg text-xs sm:text-sm font-medium animate-fade-in ${colorMap[type] || colorMap.info}`;
+        toast.textContent = message;
+        container.appendChild(toast);
+        setTimeout(() => {
+          toast.style.opacity = '0';
+          toast.style.transition = 'opacity 0.25s ease';
+          setTimeout(() => toast.remove(), 260);
+        }, 3200);
+      }
+
+      function openConfirmModal(message, onConfirm) {
+        document.getElementById('confirmModalTitle').textContent = t('confirmTitle');
+        document.getElementById('confirmModalMessage').textContent = message;
+        document.getElementById('btnConfirmCancel').textContent = t('btnCancel');
+        document.getElementById('btnConfirmOk').textContent = t('btnConfirmDelete');
+        pendingConfirmCallback = onConfirm;
+        const modal = document.getElementById('confirmModal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+      }
+
+      function closeConfirmModal() {
+        pendingConfirmCallback = null;
+        const modal = document.getElementById('confirmModal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+
+      // =========================================================================
+      // 4. CHUẨN HÓA DỮ LIỆU & LOCALSTORAGE (KHÔNG NẠP DỮ LIỆU MẪU)
+      // =========================================================================
+      function normalizeSubtask(raw) {
+        const value = clampScore(raw.value ?? 50);
+        const effort = clampScore(raw.effort ?? 25);
+        const status = VALID_STATUSES.includes(raw.status) ? raw.status : 'backlog';
+        const createdAt = raw.createdAt || new Date().toISOString();
+        const completedAt = status === 'done' ? (raw.completedAt || new Date().toISOString()) : null;
+        const todoSince = status === 'todo' ? (raw.todoSince || createdAt) : null;
+        return {
+          id: raw.id || generateId('sub'),
+          description: String(raw.description || raw.title || '').trim() || 'Task nhỏ',
+          value,
+          effort,
+          roi: calcRoi(value, effort),
+          status,
+          createdAt,
+          completedAt,
+          todoSince,
+        };
+      }
+
+      function normalizeTask(raw, validTagIds) {
+        const tagIds = Array.isArray(raw.tagIds)
+          ? raw.tagIds.filter((id) => validTagIds.has(id))
+          : [];
+        const subtasks = Array.isArray(raw.subtasks) && raw.subtasks.length > 0
+          ? raw.subtasks.map((s) => normalizeSubtask(s))
+          : [normalizeSubtask({ description: raw.description || raw.title || 'Task nhỏ', value: raw.value ?? 50, effort: raw.effort ?? 25, status: raw.status || 'backlog' })];
+        return {
+          id: raw.id || generateId('task'),
+          title: String(raw.title || raw.task || '').trim() || 'Công việc chưa đặt tên',
+          tagIds,
+          subtasks,
+        };
+      }
+
+      function saveData(isDataChange = true) {
+        try {
+          if (isDataChange) {
+            state.updatedAt = new Date().toISOString();
+          }
+          const payload = {
+            version: 4,
+            updatedAt: state.updatedAt,
+            language: state.language,
+            theme: state.theme,
+            viewMode: state.viewMode,
+            sortBy: state.sortBy,
+            driveClientId: state.driveClientId,
+            driveFileId: state.driveFileId,
+            driveEnabled: state.driveEnabled,
+            lastSyncAt: state.lastSyncAt,
+            driveAccounts: state.driveAccounts,
+            activeDriveEmail: state.activeDriveEmail,
+            tags: state.tags,
+            tasks: state.tasks,
+          };
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+
+          if (isDataChange) {
+            scheduleDriveAutoSave();
+          }
+        } catch (err) {
+          console.error('Lỗi lưu localStorage:', err);
+          showToast(t('errStorage'), 'error');
+        }
+      }
+
+      function loadData() {
+        try {
+          const saved = localStorage.getItem(STORAGE_KEY) || localStorage.getItem(LEGACY_STORAGE_KEY);
+          if (!saved) {
+            state.tags = [];
+            state.tasks = [];
+            state.updatedAt = null;
+            return;
+          }
+          const parsed = JSON.parse(saved);
+          if (parsed && Array.isArray(parsed.tasks)) {
+            state.tags = Array.isArray(parsed.tags)
+              ? parsed.tags
+                  .filter((tg) => tg && tg.id && String(tg.name || '').trim())
+                  .map((tg) => ({
+                    id: String(tg.id),
+                    name: String(tg.name).trim(),
+                    color: TAG_COLORS.some((c) => c.key === tg.color) ? tg.color : 'indigo',
+                  }))
+              : [];
+            const validTagIds = new Set(state.tags.map((tg) => tg.id));
+            state.tasks = parsed.tasks.map((task) => normalizeTask(task, validTagIds));
+            state.updatedAt = parsed.updatedAt || null;
+
+            if (parsed.language === 'vi' || parsed.language === 'en') state.language = parsed.language;
+            if (parsed.theme === 'light' || parsed.theme === 'dark') state.theme = parsed.theme;
+            if (parsed.viewMode === 'table' || parsed.viewMode === 'kanban') state.viewMode = parsed.viewMode;
+            if (VALID_SORTS.includes(parsed.sortBy)) state.sortBy = parsed.sortBy;
+
+            if (typeof parsed.driveClientId === 'string') state.driveClientId = parsed.driveClientId.trim();
+            if (typeof parsed.driveFileId === 'string') state.driveFileId = parsed.driveFileId.trim();
+            state.driveEnabled = Boolean(parsed.driveEnabled);
+            state.lastSyncAt = parsed.lastSyncAt || null;
+            state.driveAccounts = Array.isArray(parsed.driveAccounts)
+              ? parsed.driveAccounts
+                  .filter((acc) => acc && acc.email)
+                  .map((acc) => ({
+                    email: String(acc.email).trim(),
+                    name: String(acc.name || acc.email).trim(),
+                    photo: String(acc.photo || '').trim(),
+                    fileId: String(acc.fileId || '').trim(),
+                    lastSyncAt: acc.lastSyncAt || null,
+                  }))
+              : [];
+            state.activeDriveEmail = typeof parsed.activeDriveEmail === 'string' ? parsed.activeDriveEmail.trim() : '';
+          } else {
+            state.tags = [];
+            state.tasks = [];
+            state.updatedAt = null;
+          }
+        } catch (err) {
+          console.error('Lỗi đọc localStorage:', err);
+          state.tags = [];
+          state.tasks = [];
+          state.updatedAt = null;
+        }
+      }
+
+      // =========================================================================
+      // 4B. TÍCH HỢP GOOGLE DRIVE (OAUTH 2.0 GIS + DRIVE API V3 + MULTI-ACCOUNT)
+      // =========================================================================
+      function hasValidDriveToken() {
+        return Boolean(state.driveAccessToken) && Date.now() < state.driveTokenExpiresAt - 15000;
+      }
+
+      function markDriveSessionExpired(showNotification = false) {
+        state.driveAccessToken = '';
+        state.driveTokenExpiresAt = 0;
+        if (state.driveEnabled && state.driveClientId) {
+          state.driveStatus = 'expired';
+          state.driveBannerDismissed = false;
+        } else {
+          state.driveStatus = 'disconnected';
+        }
+        renderDriveStatusUI();
+        if (showNotification) {
+          showToast(t('toastDriveExpired'), 'error');
+        }
+      }
+
+      function ensureGisTokenClient() {
+        if (!window.google || !window.google.accounts || !window.google.accounts.oauth2) {
+          return null;
+        }
+        if (!state.driveClientId) return null;
+
+        if (!gisTokenClient || gisTokenClientIdUsed !== state.driveClientId) {
+          gisTokenClientIdUsed = state.driveClientId;
+          gisTokenClient = window.google.accounts.oauth2.initTokenClient({
+            client_id: state.driveClientId,
+            scope: DRIVE_SCOPE,
+            callback: (tokenResponse) => {
+              if (tokenResponse && tokenResponse.access_token) {
+                state.driveAccessToken = tokenResponse.access_token;
+                const expiresInSec = Number(tokenResponse.expires_in) || 3500;
+                state.driveTokenExpiresAt = Date.now() + expiresInSec * 1000;
+                state.driveEnabled = true;
+                state.driveStatus = 'synced';
+                state.driveBannerDismissed = true;
+                saveData(false);
+                renderDriveStatusUI();
+                const cb = pendingTokenSuccessCallback;
+                pendingTokenSuccessCallback = null;
+                pendingTokenErrorCallback = null;
+                if (typeof cb === 'function') cb();
+              } else {
+                const errCb = pendingTokenErrorCallback;
+                pendingTokenSuccessCallback = null;
+                pendingTokenErrorCallback = null;
+                if (typeof errCb === 'function') errCb(tokenResponse);
+              }
+            },
+            error_callback: (err) => {
+              const errCb = pendingTokenErrorCallback;
+              pendingTokenSuccessCallback = null;
+              pendingTokenErrorCallback = null;
+              if (typeof errCb === 'function') errCb(err);
+            },
+          });
+        }
+        return gisTokenClient;
+      }
+
+      function requestDriveToken(interactive, onSuccess, onError, options = {}) {
+        const client = ensureGisTokenClient();
+        if (!client) {
+          if (interactive) {
+            showToast(state.driveClientId ? t('errDriveGisNotReady') : t('errDriveClientIdReq'), 'error');
+          }
+          if (typeof onError === 'function') onError(new Error('GIS not ready'));
+          return;
+        }
+
+        pendingTokenSuccessCallback = onSuccess;
+        pendingTokenErrorCallback = onError;
+        try {
+          const reqOpts = {
+            prompt: options.prompt !== undefined ? options.prompt : (interactive ? 'select_account' : ''),
+          };
+          const hint = options.loginHint !== undefined ? options.loginHint : (!interactive ? state.activeDriveEmail : '');
+          if (hint) {
+            reqOpts.login_hint = hint;
+          }
+          client.requestAccessToken(reqOpts);
+        } catch (err) {
+          pendingTokenSuccessCallback = null;
+          pendingTokenErrorCallback = null;
+          if (typeof onError === 'function') onError(err);
+        }
+      }
+
+      async function driveFetch(url, options = {}) {
+        if (!hasValidDriveToken()) {
+          markDriveSessionExpired(true);
+          throw new Error('TOKEN_EXPIRED');
+        }
+        const headers = new Headers(options.headers || {});
+        headers.set('Authorization', `Bearer ${state.driveAccessToken}`);
+        const res = await fetch(url, { ...options, headers });
+        if (res.status === 401) {
+          markDriveSessionExpired(true);
+          throw new Error('TOKEN_EXPIRED');
+        }
+        return res;
+      }
+
+      async function fetchDriveAccountProfile() {
+        try {
+          const res = await driveFetch('https://www.googleapis.com/drive/v3/about?fields=user(displayName,emailAddress,photoLink)');
+          if (!res.ok) return null;
+          const data = await res.json();
+          const user = data && data.user ? data.user : null;
+          if (!user || !user.emailAddress) return null;
+
+          const email = String(user.emailAddress).trim();
+          const name = String(user.displayName || email).trim();
+          const photo = String(user.photoLink || '').trim();
+          const prevEmail = state.activeDriveEmail;
+
+          let acc = state.driveAccounts.find((a) => a.email.toLowerCase() === email.toLowerCase());
+          if (!acc) {
+            acc = { email, name, photo, fileId: '', lastSyncAt: null };
+            state.driveAccounts.push(acc);
+          } else {
+            acc.name = name;
+            acc.photo = photo;
+          }
+
+          state.activeDriveEmail = acc.email;
+          state.driveFileId = acc.fileId || '';
+          state.lastSyncAt = acc.lastSyncAt || null;
+          saveData(false);
+          renderDriveStatusUI();
+          return { account: acc, switched: Boolean(prevEmail && prevEmail.toLowerCase() !== acc.email.toLowerCase()) };
+        } catch (err) {
+          if (err.message !== 'TOKEN_EXPIRED') {
+            console.error('Lỗi lấy thông tin tài khoản Google:', err);
+          }
+          return null;
+        }
+      }
+
+      function syncActiveAccountMeta() {
+        if (!state.activeDriveEmail) return;
+        const acc = state.driveAccounts.find((a) => a.email.toLowerCase() === state.activeDriveEmail.toLowerCase());
+        if (acc) {
+          acc.fileId = state.driveFileId || '';
+          acc.lastSyncAt = state.lastSyncAt || null;
+        }
+      }
+
+      async function connectDriveAccount({ forceSelectAccount = true, targetEmail = '', forceLoad = false } = {}) {
+        const promptMode = forceSelectAccount ? 'select_account' : '';
+        requestDriveToken(
+          true,
+          async () => {
+            const profileInfo = await fetchDriveAccountProfile();
+            const switched = profileInfo ? profileInfo.switched : false;
+            if (profileInfo && switched) {
+              showToast(t('toastDriveSwitchedAccount')(profileInfo.account.email), 'success');
+            } else {
+              showToast(t('toastDriveConnected'), 'success');
+            }
+            await loadFromDrive(Boolean(forceLoad || switched));
+          },
+          () => {
+            showToast(t('toastDriveAuthFailed'), 'error');
+          },
+          {
+            prompt: promptMode,
+            loginHint: targetEmail || '',
+          }
+        );
+      }
+
+      function removeDriveAccount(email) {
+        const isCurrent = state.activeDriveEmail.toLowerCase() === email.toLowerCase();
+        state.driveAccounts = state.driveAccounts.filter((a) => a.email.toLowerCase() !== email.toLowerCase());
+        if (isCurrent) {
+          state.activeDriveEmail = '';
+          state.driveFileId = '';
+          state.lastSyncAt = null;
+          if (state.driveAccessToken && window.google?.accounts?.oauth2) {
+            try {
+              window.google.accounts.oauth2.revoke(state.driveAccessToken, () => {});
+            } catch (_) {}
+          }
+          state.driveAccessToken = '';
+          state.driveTokenExpiresAt = 0;
+          state.driveEnabled = false;
+          state.driveStatus = 'disconnected';
+        }
+        saveData(false);
+        renderDriveStatusUI();
+        showToast(t('toastDriveRemovedAccount')(email), 'info');
+      }
+
+      async function findDriveDataFileId() {
+        const q = encodeURIComponent(`name='${DRIVE_FILE_NAME}' and trashed=false`);
+        const url = `https://www.googleapis.com/drive/v3/files?q=${q}&spaces=drive&fields=files(id,name,modifiedTime)&orderBy=modifiedTime desc`;
+        const res = await driveFetch(url);
+        if (!res.ok) throw new Error(`Drive search failed (${res.status})`);
+        const data = await res.json();
+        if (data && Array.isArray(data.files) && data.files.length > 0) {
+          state.driveFileId = data.files[0].id;
+          syncActiveAccountMeta();
+          saveData(false);
+          return state.driveFileId;
+        }
+        return '';
+      }
+
+      async function saveToDrive(silent = false) {
+        if (!hasValidDriveToken()) {
+          if (!silent) markDriveSessionExpired(true);
+          return false;
+        }
+
+        state.driveStatus = 'syncing';
+        renderDriveStatusUI();
+
+        try {
+          const payload = {
+            version: 4,
+            updatedAt: state.updatedAt || new Date().toISOString(),
+            tags: state.tags,
+            tasks: state.tasks,
+          };
+          const jsonContent = JSON.stringify(payload, null, 2);
+
+          let fileId = state.driveFileId;
+          if (!fileId) {
+            fileId = await findDriveDataFileId();
+          }
+
+          let res;
+          if (fileId) {
+            res = await driveFetch(
+              `https://www.googleapis.com/upload/drive/v3/files/${encodeURIComponent(fileId)}?uploadType=media`,
+              {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json; charset=UTF-8' },
+                body: jsonContent,
+              }
+            );
+            if (res.status === 404) {
+              state.driveFileId = '';
+              fileId = '';
+            }
+          }
+
+          if (!fileId) {
+            const boundary = 'roi_task_manager_boundary_' + Date.now();
+            const metadata = { name: DRIVE_FILE_NAME, mimeType: 'application/json' };
+            const multipartBody =
+              `--${boundary}\r\n` +
+              `Content-Type: application/json; charset=UTF-8\r\n\r\n` +
+              `${JSON.stringify(metadata)}\r\n` +
+              `--${boundary}\r\n` +
+              `Content-Type: application/json; charset=UTF-8\r\n\r\n` +
+              `${jsonContent}\r\n` +
+              `--${boundary}--`;
+
+            res = await driveFetch(
+              'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id',
+              {
+                method: 'POST',
+                headers: { 'Content-Type': `multipart/related; boundary=${boundary}` },
+                body: multipartBody,
+              }
+            );
+          }
+
+          if (!res.ok) {
+            throw new Error(`Drive upload failed (${res.status})`);
+          }
+
+          const result = await res.json();
+          if (result && result.id) {
+            state.driveFileId = result.id;
+          }
+          state.lastSyncAt = new Date().toISOString();
+          state.driveStatus = 'synced';
+          syncActiveAccountMeta();
+          saveData(false);
+          renderDriveStatusUI();
+
+          if (!silent) {
+            showToast(t('toastDriveSaved'), 'success');
+          }
+          return true;
+        } catch (err) {
+          if (err.message !== 'TOKEN_EXPIRED') {
+            console.error('Lỗi lưu Google Drive:', err);
+            state.driveStatus = hasValidDriveToken() ? 'synced' : 'expired';
+            renderDriveStatusUI();
+            if (!silent) showToast(t('toastDriveSyncError'), 'error');
+          }
+          return false;
+        }
+      }
+
+      async function loadFromDrive(forceOverwrite = false) {
+        if (!hasValidDriveToken()) {
+          markDriveSessionExpired(true);
+          return false;
+        }
+
+        state.driveStatus = 'syncing';
+        renderDriveStatusUI();
+
+        try {
+          const fileId = await findDriveDataFileId();
+          if (!fileId) {
+            await saveToDrive(true);
+            showToast(t('toastDriveNoRemoteFile'), 'info');
+            return true;
+          }
+
+          const res = await driveFetch(
+            `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}?alt=media`
+          );
+          if (!res.ok) throw new Error(`Drive download failed (${res.status})`);
+          const remote = await res.json();
+
+          if (!remote || !Array.isArray(remote.tasks)) {
+            throw new Error(t('errImportInvalid'));
+          }
+
+          const remoteTime = remote.updatedAt ? new Date(remote.updatedAt).getTime() : 0;
+          const localTime = state.updatedAt ? new Date(state.updatedAt).getTime() : 0;
+          const localIsEmpty = state.tasks.length === 0 && state.tags.length === 0;
+
+          if (forceOverwrite || localIsEmpty || remoteTime >= localTime) {
+            const importedTags = Array.isArray(remote.tags)
+              ? remote.tags
+                  .filter((tg) => tg && tg.id && String(tg.name || '').trim())
+                  .map((tg) => ({
+                    id: String(tg.id),
+                    name: String(tg.name).trim(),
+                    color: TAG_COLORS.some((c) => c.key === tg.color) ? tg.color : 'indigo',
+                  }))
+              : [];
+            const validTagIds = new Set(importedTags.map((tg) => tg.id));
+            state.tags = importedTags;
+            state.tasks = remote.tasks.map((tk) => normalizeTask(tk, validTagIds));
+            state.updatedAt = remote.updatedAt || new Date().toISOString();
+            state.lastSyncAt = new Date().toISOString();
+            state.driveStatus = 'synced';
+            state.tagFilter = 'all';
+            syncActiveAccountMeta();
+            saveData(false);
+            renderAll();
+            showToast(t('toastDriveLoaded')(state.tasks.length), 'success');
+          } else {
+            await saveToDrive(true);
+            showToast(t('toastDriveUpToDate'), 'info');
+          }
+          return true;
+        } catch (err) {
+          if (err.message !== 'TOKEN_EXPIRED') {
+            console.error('Lỗi tải Google Drive:', err);
+            state.driveStatus = hasValidDriveToken() ? 'synced' : 'expired';
+            renderDriveStatusUI();
+            showToast(t('toastDriveSyncError'), 'error');
+          }
+          return false;
+        }
+      }
+
+      function scheduleDriveAutoSave() {
+        if (!state.driveEnabled || !state.driveClientId) return;
+        if (!hasValidDriveToken()) {
+          if (state.driveStatus !== 'expired') {
+            markDriveSessionExpired(false);
+          }
+          return;
+        }
+        clearTimeout(driveAutoSaveTimer);
+        driveAutoSaveTimer = setTimeout(() => {
+          saveToDrive(true);
+        }, DRIVE_AUTOSAVE_DEBOUNCE_MS);
+      }
+
+      function disconnectDrive() {
+        clearTimeout(driveAutoSaveTimer);
+        if (state.driveAccessToken && window.google?.accounts?.oauth2) {
+          try {
+            window.google.accounts.oauth2.revoke(state.driveAccessToken, () => {});
+          } catch (_) {}
+        }
+        state.driveAccessToken = '';
+        state.driveTokenExpiresAt = 0;
+        state.driveEnabled = false;
+        state.driveStatus = 'disconnected';
+        state.driveBannerDismissed = true;
+        saveData(false);
+        renderDriveStatusUI();
+        showToast(t('toastDriveDisconnected'), 'info');
+      }
+
+      function attemptAutoConnectDrive() {
+        if (!state.driveEnabled || !state.driveClientId) {
+          state.driveStatus = 'disconnected';
+          renderDriveStatusUI();
+          return;
+        }
+
+        state.driveStatus = 'syncing';
+        renderDriveStatusUI();
+
+        let attempts = 0;
+        const maxAttempts = 25;
+        const trySilent = () => {
+          if (window.google?.accounts?.oauth2) {
+            requestDriveToken(
+              false,
+              async () => {
+                await fetchDriveAccountProfile();
+                loadFromDrive(false);
+              },
+              () => {
+                markDriveSessionExpired(false);
+              }
+            );
+          } else if (attempts < maxAttempts) {
+            attempts += 1;
+            setTimeout(trySilent, 250);
+          } else {
+            markDriveSessionExpired(false);
+          }
+        };
+        trySilent();
+      }
+
+      function renderDriveAccountsList() {
+        const container = document.getElementById('driveAccountsList');
+        if (!container) return;
+
+        if (!state.driveAccounts || state.driveAccounts.length === 0) {
+          container.innerHTML = `<div class="px-3 py-2.5 rounded-xl border border-dashed theme-border text-[11px] theme-text-muted italic">${escapeHtml(t('driveNoAccountsYet'))}</div>`;
+          return;
+        }
+
+        const connected = hasValidDriveToken();
+        container.innerHTML = state.driveAccounts
+          .map((acc) => {
+            const isActive = state.activeDriveEmail.toLowerCase() === acc.email.toLowerCase();
+            const initial = (acc.name || acc.email || 'G').charAt(0).toUpperCase();
+            return `
+              <div class="flex items-center justify-between gap-2 px-3 py-2 rounded-xl border ${
+                isActive ? 'border-indigo-400 bg-indigo-500/5' : 'theme-border theme-surface-alt'
+              }">
+                <div class="flex items-center gap-2.5 min-w-0">
+                  <div class="w-7 h-7 rounded-full bg-indigo-600/15 text-indigo-600 dark:text-indigo-300 font-bold text-xs flex items-center justify-center shrink-0">
+                    ${escapeHtml(initial)}
+                  </div>
+                  <div class="min-w-0">
+                    <div class="flex items-center gap-1.5">
+                      <span class="text-xs font-semibold theme-text-primary truncate">${escapeHtml(acc.name || acc.email)}</span>
+                      ${
+                        isActive && connected
+                          ? `<span class="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 shrink-0">${escapeHtml(t('driveAccountActiveBadge'))}</span>`
+                          : ''
+                      }
+                    </div>
+                    <div class="text-[11px] theme-text-muted truncate">${escapeHtml(acc.email)}</div>
+                  </div>
+                </div>
+                <div class="flex items-center gap-1 shrink-0">
+                  ${
+                    !isActive || !connected
+                      ? `<button type="button" data-switch-drive-email="${escapeHtml(acc.email)}"
+                          class="px-2.5 py-1 text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/15 rounded-lg transition cursor-pointer">
+                          ${escapeHtml(t('btnDriveUseAccount'))}
+                        </button>`
+                      : ''
+                  }
+                  <button type="button" data-remove-drive-email="${escapeHtml(acc.email)}"
+                    class="px-2 py-1 text-[11px] font-medium text-rose-600 hover:bg-rose-500/10 rounded-lg transition cursor-pointer">
+                    ${escapeHtml(t('btnDriveRemoveAccount'))}
+                  </button>
+                </div>
+              </div>
+            `;
+          })
+          .join('');
+      }
+
+      function renderDriveStatusUI() {
+        const headerDot = document.getElementById('driveHeaderDot');
+        const headerText = document.getElementById('driveHeaderStatusText');
+        const banner = document.getElementById('driveExpiredBanner');
+        const modalDot = document.getElementById('driveModalDot');
+        const modalStatusLabel = document.getElementById('driveModalStatusLabel');
+        const modalActiveEmail = document.getElementById('driveModalActiveEmail');
+        const modalLastSync = document.getElementById('driveModalLastSync');
+
+        const btnSaveNow = document.getElementById('btnDriveSaveNow');
+        const btnLoadNow = document.getElementById('btnDriveLoadNow');
+        const btnDisconnect = document.getElementById('btnDriveDisconnect');
+        const lblConnect = document.getElementById('lblBtnDriveConnect');
+
+        const connected = hasValidDriveToken();
+        const shortEmail = state.activeDriveEmail ? state.activeDriveEmail.split('@')[0] : '';
+
+        if (state.driveStatus === 'syncing') {
+          headerDot.className = 'w-2 h-2 rounded-full bg-indigo-500 animate-pulse shrink-0';
+          headerText.textContent = t('driveHeaderSyncing');
+          modalDot.className = 'w-2.5 h-2.5 rounded-full bg-indigo-500 animate-pulse shrink-0';
+          modalStatusLabel.textContent = t('driveStatusSyncing');
+        } else if (state.driveStatus === 'expired') {
+          headerDot.className = 'w-2 h-2 rounded-full bg-amber-500 shrink-0';
+          headerText.textContent = t('driveHeaderExpired');
+          modalDot.className = 'w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0';
+          modalStatusLabel.textContent = t('driveStatusExpired');
+        } else if (connected) {
+          headerDot.className = 'w-2 h-2 rounded-full bg-emerald-500 shrink-0';
+          const baseText = state.lastSyncAt
+            ? t('driveHeaderSynced')(formatTimeOnly(state.lastSyncAt))
+            : t('driveHeaderConnected');
+          headerText.textContent = shortEmail ? `${baseText} (${shortEmail})` : baseText;
+          modalDot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0';
+          modalStatusLabel.textContent = t('driveStatusConnected');
+        } else {
+          headerDot.className = 'w-2 h-2 rounded-full bg-slate-400 shrink-0';
+          headerText.textContent = t('driveHeaderDisconnected');
+          modalDot.className = 'w-2.5 h-2.5 rounded-full bg-slate-400 shrink-0';
+          modalStatusLabel.textContent = t('driveStatusDisconnected');
+        }
+
+        if (state.activeDriveEmail) {
+          modalActiveEmail.textContent = state.activeDriveEmail;
+          modalActiveEmail.classList.remove('hidden');
+        } else {
+          modalActiveEmail.classList.add('hidden');
+        }
+
+        modalLastSync.textContent = state.lastSyncAt
+          ? t('driveLastSyncAt')(formatDateTime(state.lastSyncAt))
+          : t('driveLastSyncNone');
+
+        const showBanner = state.driveStatus === 'expired' && !state.driveBannerDismissed;
+        banner.classList.toggle('hidden', !showBanner);
+
+        lblConnect.textContent = state.driveStatus === 'expired' ? t('btnDriveReconnect') : t('btnDriveConnect');
+        btnSaveNow.disabled = !connected || state.driveStatus === 'syncing';
+        btnLoadNow.disabled = !connected || state.driveStatus === 'syncing';
+        btnDisconnect.disabled = !state.driveEnabled && !connected;
+        renderDriveAccountsList();
+      }
+
+      function openDriveModal() {
+        document.getElementById('driveModalError').classList.add('hidden');
+        document.getElementById('driveClientIdInput').value = state.driveClientId || '';
+        document.getElementById('driveCurrentOrigin').textContent = window.location.origin || 'http://localhost';
+        renderDriveStatusUI();
+        const modal = document.getElementById('driveModal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+      }
+
+      function closeDriveModal() {
+        const modal = document.getElementById('driveModal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+
+      // =========================================================================
+      // 5. GIAO DIỆN NGÔN NGỮ & CHỦ ĐỀ (THEME + I18N)
+      // =========================================================================
+      function applyTheme() {
+        const htmlEl = document.documentElement;
+        const iconSun = document.getElementById('iconSun');
+        const iconMoon = document.getElementById('iconMoon');
+        if (state.theme === 'dark') {
+          htmlEl.classList.add('dark');
+          iconSun.classList.remove('hidden');
+          iconMoon.classList.add('hidden');
+        } else {
+          htmlEl.classList.remove('dark');
+          iconSun.classList.add('hidden');
+          iconMoon.classList.remove('hidden');
+        }
+      }
+
+      function applyStaticTranslations() {
+        document.documentElement.lang = state.language;
+        document.title = t('pageTitle');
+        document.getElementById('appTitle').textContent = t('appTitle');
+        document.getElementById('appSubtitle').textContent = t('appSubtitle');
+        document.getElementById('lblBtnTags').textContent = t('btnTags');
+        document.getElementById('lblBtnExport').textContent = t('btnExport');
+        document.getElementById('lblBtnImport').textContent = t('btnImport');
+        document.getElementById('lblBtnAddTask').textContent = t('btnAddTask');
+
+        // Lang toggle active style
+        document.querySelectorAll('.lang-btn').forEach((btn) => {
+          const isActive = btn.dataset.lang === state.language;
+          btn.className = `lang-btn px-2.5 py-1 text-xs font-bold rounded-lg transition cursor-pointer ${
+            isActive
+              ? 'bg-indigo-600 text-white shadow-xs'
+              : 'theme-text-muted hover:theme-text-primary'
+          }`;
+        });
+
+        // Compact Stats Bar labels
+        document.getElementById('lblStatMain').textContent = t('statMain');
+        document.getElementById('lblStatSub').textContent = t('statSub');
+        document.getElementById('lblStatBacklog').textContent = `${getStatusLabel('backlog')}:`;
+        document.getElementById('lblStatTodo').textContent = `${getStatusLabel('todo')}:`;
+        document.getElementById('lblStatInProgress').textContent = `${getStatusLabel('in_progress')}:`;
+        document.getElementById('lblStatDone').textContent = `${getStatusLabel('done')}:`;
+        document.getElementById('lblStatAborted').textContent = `${getStatusLabel('aborted')}:`;
+        document.getElementById('lblStatAvgRoi').textContent = t('statAvgRoi');
+        document.getElementById('lblStatDoneRate').textContent = t('statDoneRate');
+        document.getElementById('btnOverdueFilterTodo').textContent = t('btnOverdueFilterTodo');
+        document.getElementById('lblViewTable').textContent = t('viewTable');
+        document.getElementById('lblViewKanban').textContent = t('viewKanban');
+        document.getElementById('lblSortBy').textContent = t('lblSortBy');
+        document.getElementById('searchInput').placeholder = t('searchPlaceholder');
+        document.getElementById('lblTagFilter').textContent = t('lblTagFilter');
+
+        // Sort select options
+        const sortSelect = document.getElementById('sortSelect');
+        sortSelect.options[0].textContent = t('sortRoiDesc');
+        sortSelect.options[1].textContent = t('sortValueDesc');
+        sortSelect.options[2].textContent = t('sortEffortAsc');
+        sortSelect.options[3].textContent = t('sortCreatedDesc');
+        sortSelect.options[4].textContent = t('sortCompletedDesc');
+        sortSelect.value = state.sortBy;
+        document.getElementById('btnResetSort').classList.toggle('hidden', state.sortBy === 'roi_desc');
+
+        // Status filter tabs
+        document.querySelectorAll('.status-tab').forEach((btn) => {
+          const st = btn.dataset.status;
+          btn.textContent = st === 'all' ? t('statusAll') : getStatusLabel(st);
+          const active = st === state.statusFilter;
+          btn.className = `status-tab px-2.5 py-1.5 text-xs font-semibold rounded-xl transition cursor-pointer ${
+            active
+              ? 'bg-indigo-600 text-white shadow-xs'
+              : 'theme-subtle theme-text-secondary hover:opacity-85'
+          }`;
+        });
+
+        // View switch buttons
+        document.querySelectorAll('.view-switch-btn').forEach((btn) => {
+          const active = btn.dataset.view === state.viewMode;
+          btn.className = `view-switch-btn inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition cursor-pointer ${
+            active
+              ? 'bg-indigo-600 text-white shadow-xs'
+              : 'theme-text-muted hover:theme-text-primary'
+          }`;
+        });
+
+        // Table headers
+        document.getElementById('thMainTask').textContent = t('thMainTask');
+        document.getElementById('thSubtask').textContent = t('thSubtask');
+        document.getElementById('thStatus').textContent = t('thStatus');
+        document.getElementById('thValue').textContent = t('thValue');
+        document.getElementById('thEffort').textContent = t('thEffort');
+        document.getElementById('thRoi').textContent = t('thRoi');
+        document.getElementById('thActions').textContent = t('thActions');
+
+        // Subtask modal status options & labels
+        const subStatusSel = document.getElementById('subtaskStatusSelect');
+        subStatusSel.options[0].textContent = getStatusLabel('backlog');
+        subStatusSel.options[1].textContent = getStatusLabel('todo');
+        subStatusSel.options[2].textContent = getStatusLabel('in_progress');
+        subStatusSel.options[3].textContent = getStatusLabel('done');
+        subStatusSel.options[4].textContent = getStatusLabel('aborted');
+
+        document.getElementById('lblMainTaskTitle').innerHTML = `${escapeHtml(t('lblMainTaskTitle'))} <span class="text-rose-500">*</span>`;
+        document.getElementById('mainTaskTitleInput').placeholder = t('mainTaskPlaceholder');
+        document.getElementById('lblMainTaskTags').textContent = t('lblMainTaskTags');
+        document.getElementById('quickTagNameInput').placeholder = t('quickTagPlaceholder');
+        document.getElementById('lblDraftSubtasks').textContent = t('lblDraftSubtasks');
+        document.getElementById('lblBtnAddDraftRow').textContent = t('lblBtnAddDraftRow');
+        document.getElementById('btnCancelMainTaskModal').textContent = t('btnCancel');
+        document.getElementById('btnSaveMainTask').textContent = t('btnSaveMainTask');
+
+        document.getElementById('lblSubtaskDesc').innerHTML = `${escapeHtml(t('lblSubtaskDesc'))} <span class="text-rose-500">*</span>`;
+        document.getElementById('subtaskDescInput').placeholder = t('subtaskDescPlaceholder');
+        document.getElementById('lblSubtaskValue').innerHTML = `${escapeHtml(t('lblSubtaskValue'))} <span class="text-rose-500">*</span>`;
+        document.getElementById('lblSubtaskEffort').innerHTML = `${escapeHtml(t('lblSubtaskEffort'))} <span class="text-rose-500">*</span>`;
+        document.getElementById('lblSubtaskStatus').textContent = t('lblSubtaskStatus');
+        document.getElementById('lblSubtaskRoiPreview').textContent = t('lblSubtaskRoiPreview');
+        document.getElementById('btnCancelSubtaskModal').textContent = t('btnCancel');
+        document.getElementById('btnSaveSubtask').textContent = t('btnSaveSubtask');
+
+        // Tag Manager Modal
+        document.getElementById('tagModalTitle').textContent = t('tagModalTitle');
+        document.getElementById('newTagNameInput').placeholder = t('newTagPlaceholder');
+        document.getElementById('btnCreateTag').textContent = t('btnCreateTag');
+        document.getElementById('lblPickTagColor').textContent = t('lblPickTagColor');
+        document.getElementById('btnDoneTagModal').textContent = t('btnClose');
+
+        // Empty state buttons & Footer
+        document.getElementById('btnClearFilters').textContent = t('btnClearFilters');
+        document.getElementById('lblBtnEmptyAddTask').textContent = t('btnEmptyAddTask');
+        document.getElementById('lblLegendTitle').textContent = t('legendTitle');
+        document.getElementById('lblLegendHigh').textContent = t('legendHigh');
+        document.getElementById('lblLegendMid').textContent = t('legendMid');
+        document.getElementById('lblLegendLow').textContent = t('legendLow');
+        document.getElementById('lblFooterNote').textContent = t('footerNote');
+
+        // Google Drive Banner & Modal static labels
+        document.getElementById('lblDriveExpiredBannerText').textContent = t('driveExpiredBannerText');
+        document.getElementById('btnBannerReconnect').textContent = t('btnBannerReconnect');
+        document.getElementById('driveModalTitle').textContent = t('driveModalTitle');
+        document.getElementById('driveModalSubtitle').textContent = t('driveModalSubtitle');
+        document.getElementById('lblDriveAccountsTitle').textContent = t('lblDriveAccountsTitle');
+        document.getElementById('lblBtnDriveAddAccount').textContent = t('lblBtnDriveAddAccount');
+        document.getElementById('lblDriveClientId').textContent = t('lblDriveClientId');
+        document.getElementById('btnSaveDriveClientId').textContent = t('btnSaveDriveClientId');
+        document.getElementById('lblBtnDriveSaveNow').textContent = t('btnDriveSaveNow');
+        document.getElementById('lblBtnDriveLoadNow').textContent = t('btnDriveLoadNow');
+        document.getElementById('lblBtnDriveDisconnect').textContent = t('btnDriveDisconnect');
+        document.getElementById('lblDriveGuideTitle').textContent = t('lblDriveGuideTitle');
+        document.getElementById('driveGuideSteps').innerHTML = t('driveGuideHtml');
+        document.getElementById('lblDriveOrigin').textContent = t('lblDriveOrigin');
+        document.getElementById('btnCopyOrigin').textContent = t('btnCopyOrigin');
+        document.getElementById('btnDoneDriveModal').textContent = t('btnClose');
+        renderDriveStatusUI();
+      }
+
+      // =========================================================================
+      // 6. LOGIC LỌC & SẮP XẾP (FILTER + MULTI-CRITERIA SORT)
+      // =========================================================================
+      function compareSubtasks(a, b, sortBy, separateInactive = true) {
+        if (separateInactive && sortBy !== 'completed_desc') {
+          const aInactive = a.status === 'done' || a.status === 'aborted' ? 1 : 0;
+          const bInactive = b.status === 'done' || b.status === 'aborted' ? 1 : 0;
+          if (aInactive !== bInactive) return aInactive - bInactive;
+        }
+
+        if (sortBy === 'roi_desc') {
+          if (b.roi !== a.roi) return b.roi - a.roi;
+          if (b.value !== a.value) return b.value - a.value;
+          return a.effort - b.effort;
+        }
+        if (sortBy === 'value_desc') {
+          if (b.value !== a.value) return b.value - a.value;
+          return b.roi - a.roi;
+        }
+        if (sortBy === 'effort_asc') {
+          if (a.effort !== b.effort) return a.effort - b.effort;
+          return b.roi - a.roi;
+        }
+        if (sortBy === 'created_desc') {
+          return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+        }
+        if (sortBy === 'completed_desc') {
+          const aTime = a.completedAt ? new Date(a.completedAt).getTime() : -1;
+          const bTime = b.completedAt ? new Date(b.completedAt).getTime() : -1;
+          if (bTime !== aTime) return bTime - aTime;
+          return b.roi - a.roi;
+        }
+        return b.roi - a.roi;
+      }
+
+      function getFilteredAndSortedTasks() {
+        const query = state.searchQuery.trim().toLowerCase();
+
+        const filteredGroups = [];
+        for (const task of state.tasks) {
+          // Lọc Tag
+          if (state.tagFilter !== 'all' && !task.tagIds.includes(state.tagFilter)) {
+            continue;
+          }
+
+          const taskTagNames = task.tagIds
+            .map((id) => state.tags.find((tg) => tg.id === id)?.name || '')
+            .join(' ')
+            .toLowerCase();
+          const titleMatches = !query || task.title.toLowerCase().includes(query) || taskTagNames.includes(query);
+
+          const matchingSubtasks = task.subtasks.filter((sub) => {
+            if (state.statusFilter !== 'all' && sub.status !== state.statusFilter) {
+              return false;
+            }
+            if (!query) return true;
+            return titleMatches || sub.description.toLowerCase().includes(query);
+          });
+
+          if (matchingSubtasks.length === 0) continue;
+
+          const sortedSubtasks = [...matchingSubtasks].sort((a, b) =>
+            compareSubtasks(a, b, state.sortBy, true)
+          );
+
+          filteredGroups.push({
+            task,
+            subtasks: sortedSubtasks,
+          });
+        }
+
+        // Sắp xếp các nhóm công việc chính theo task nhỏ đứng đầu (ưu tiên nhất) của mỗi nhóm
+        filteredGroups.sort((gA, gB) => {
+          const topA = gA.subtasks[0];
+          const topB = gB.subtasks[0];
+          return compareSubtasks(topA, topB, state.sortBy, true);
+        });
+
+        return filteredGroups;
+      }
+
+      // =========================================================================
+      // 7. RENDER THỐNG KÊ, BỘ LỌC TAG, BẢNG & KANBAN
+      // =========================================================================
+      function renderCompactStats() {
+        const allSubtasks = state.tasks.flatMap((task) => task.subtasks);
+        const totalMain = state.tasks.length;
+        const totalSub = allSubtasks.length;
+        const backlogCount = allSubtasks.filter((s) => s.status === 'backlog').length;
+        const todoCount = allSubtasks.filter((s) => s.status === 'todo').length;
+        const inProgressCount = allSubtasks.filter((s) => s.status === 'in_progress').length;
+        const doneCount = allSubtasks.filter((s) => s.status === 'done').length;
+        const abortedCount = allSubtasks.filter((s) => s.status === 'aborted').length;
+        const overdueCount = getOverdueTodoCount();
+
+        const eligibleSubtasks = allSubtasks.filter((s) => s.status !== 'aborted');
+        const eligibleCount = eligibleSubtasks.length;
+        const donePct = eligibleCount > 0 ? Math.round((doneCount / eligibleCount) * 100) : 0;
+        const avgRoi =
+          eligibleCount > 0
+            ? eligibleSubtasks.reduce((sum, s) => sum + (Number(s.roi) || 0), 0) / eligibleCount
+            : 0;
+
+        document.getElementById('statMainTasks').textContent = totalMain;
+        document.getElementById('statSubtasks').textContent = totalSub;
+        document.getElementById('statBacklog').textContent = backlogCount;
+        document.getElementById('statTodo').textContent = todoCount;
+        document.getElementById('statInProgress').textContent = inProgressCount;
+        document.getElementById('statDone').textContent = doneCount;
+        document.getElementById('statAborted').textContent = abortedCount;
+        document.getElementById('statAvgRoi').textContent = avgRoi.toFixed(2);
+        document.getElementById('statDonePct').textContent = `${donePct}%`;
+
+        // Cập nhật badge và banner cảnh báo quá hạn (> 7 ngày ở trạng thái Cần làm)
+        const overdueBadge = document.getElementById('statOverdueBadge');
+        const overdueBanner = document.getElementById('todoOverdueBanner');
+        if (overdueCount > 0) {
+          document.getElementById('statOverdueText').textContent = t('statOverdueText')(overdueCount);
+          overdueBadge.classList.remove('hidden');
+          document.getElementById('lblTodoOverdueBannerText').textContent = t('todoOverdueBannerText')(overdueCount);
+          overdueBanner.classList.toggle('hidden', state.todoBannerDismissed);
+        } else {
+          overdueBadge.classList.add('hidden');
+          overdueBanner.classList.add('hidden');
+        }
+      }
+
+      function renderTagFilterBar() {
+        const listEl = document.getElementById('tagFilterList');
+        if (!listEl) return;
+
+        const allActive = state.tagFilter === 'all';
+        const buttons = [
+          `<button type="button" data-tag-filter="all"
+            class="px-2.5 py-1 text-[11px] font-semibold rounded-full border transition cursor-pointer ${
+              allActive
+                ? 'bg-indigo-600 text-white border-indigo-600'
+                : 'theme-subtle theme-text-secondary hover:border-indigo-400'
+            }">${escapeHtml(t('tagAll'))}</button>`,
+        ];
+
+        for (const tag of state.tags) {
+          const cfg = getTagColorConfig(tag.color);
+          const active = state.tagFilter === tag.id;
+          buttons.push(`
+            <button type="button" data-tag-filter="${escapeHtml(tag.id)}"
+              class="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold rounded-full border transition cursor-pointer ${
+                active ? 'ring-2 ring-indigo-500/60 ' + cfg.badge : cfg.badge + ' opacity-80 hover:opacity-100'
+              }">
+              <span class="w-1.5 h-1.5 rounded-full ${cfg.swatch}"></span>
+              ${escapeHtml(tag.name)}
+            </button>
+          `);
+        }
+
+        if (state.tags.length === 0) {
+          buttons.push(`<span class="text-[11px] theme-text-muted italic ml-1">${escapeHtml(t('noTagsYet'))}</span>`);
+        }
+
+        listEl.innerHTML = buttons.join('');
+      }
+
+      function renderTagBadgesHtml(tagIds, clickable = false) {
+        if (!Array.isArray(tagIds) || tagIds.length === 0) return '';
+        return tagIds
+          .map((id) => state.tags.find((tg) => tg.id === id))
+          .filter(Boolean)
+          .map((tag) => {
+            const cfg = getTagColorConfig(tag.color);
+            if (clickable) {
+              return `
+                <button type="button" data-click-tag="${escapeHtml(tag.id)}"
+                  class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-semibold rounded-full border transition hover:opacity-80 cursor-pointer ${cfg.badge}">
+                  <span class="w-1.5 h-1.5 rounded-full ${cfg.swatch}"></span>
+                  ${escapeHtml(tag.name)}
+                </button>
+              `;
+            }
+            return `
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-semibold rounded-full border ${cfg.badge}">
+                <span class="w-1.5 h-1.5 rounded-full ${cfg.swatch}"></span>
+                ${escapeHtml(tag.name)}
+              </span>
+            `;
+          })
+          .join('');
+      }
+
+      function renderTimestampRowHtml(sub) {
+        const created = formatDateTime(sub.createdAt);
+        const completed = sub.completedAt ? formatDateTime(sub.completedAt) : '';
+        const overdue = isTodoOverdue(sub);
+        const todoDays = sub.status === 'todo' ? getTodoElapsedDays(sub) : 0;
+        const todoSinceText = sub.status === 'todo' && sub.todoSince ? formatDateTime(sub.todoSince) : '';
+
+        return `
+          <div class="mt-1.5 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[11px] theme-text-muted">
+            <span>${escapeHtml(t('createdPrefix'))} ${escapeHtml(created)}</span>
+            ${
+              todoSinceText
+                ? `<span class="${overdue ? 'text-rose-600 dark:text-rose-400 font-semibold' : 'text-violet-600 dark:text-violet-400 font-medium'}">• ${escapeHtml(t('todoSincePrefix'))} ${escapeHtml(todoSinceText)}</span>`
+                : ''
+            }
+            ${completed ? `<span class="text-emerald-600 dark:text-emerald-400 font-medium">• ${escapeHtml(t('completedPrefix'))} ${escapeHtml(completed)}</span>` : ''}
+          </div>
+          ${
+            overdue
+              ? `<div class="mt-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30">
+                  ${escapeHtml(t('badgeTodoOverdue')(todoDays))}
+                </div>`
+              : ''
+          }
+        `;
+      }
+
+      function showEmptyState() {
+        const emptyEl = document.getElementById('emptyState');
+        const hasAnyTasks = state.tasks.length > 0;
+        document.getElementById('emptyStateTitle').textContent = hasAnyTasks
+          ? t('emptyNoMatchTitle')
+          : t('emptyNoDataTitle');
+        document.getElementById('emptyStateDesc').textContent = hasAnyTasks
+          ? t('emptyNoMatchDesc')
+          : t('emptyNoDataDesc');
+        document.getElementById('btnClearFilters').classList.toggle('hidden', !hasAnyTasks);
+        document.getElementById('btnEmptyAddTask').classList.toggle('hidden', hasAnyTasks);
+        emptyEl.classList.remove('hidden');
+      }
+
+      function renderTableView(groups) {
+        const tbody = document.getElementById('taskTableBody');
+        if (groups.length === 0) {
+          tbody.innerHTML = '';
+          document.getElementById('tableViewSection').classList.add('hidden');
+          showEmptyState();
+          return;
+        }
+
+        document.getElementById('emptyState').classList.add('hidden');
+        document.getElementById('tableViewSection').classList.remove('hidden');
+
+        const rowsHtml = [];
+        for (const group of groups) {
+          const { task, subtasks } = group;
+          const accentColor = getTaskAccentColor(task);
+          const rowSpan = subtasks.length;
+
+          subtasks.forEach((sub, idx) => {
+            const isMuted = sub.status === 'done' || sub.status === 'aborted';
+            const overdue = isTodoOverdue(sub);
+            const stStyle = STATUS_STYLES[sub.status] || STATUS_STYLES.backlog;
+
+            let mainTaskCell = '';
+            if (idx === 0) {
+              mainTaskCell = `
+                <td rowspan="${rowSpan}" class="align-top py-3.5 px-4 border-r theme-border theme-surface-alt" style="border-left: 4px solid ${accentColor};">
+                  <div class="flex items-start justify-between gap-2">
+                    <div class="font-bold theme-text-primary leading-snug break-words">${escapeHtml(task.title)}</div>
+                    <div class="flex items-center gap-0.5 shrink-0">
+                      <button type="button" data-action="edit-main" data-task-id="${escapeHtml(task.id)}" title="${escapeHtml(t('tooltipEditTask'))}"
+                        class="p-1 rounded-lg theme-text-muted hover:text-indigo-600 hover:bg-indigo-500/10 transition cursor-pointer">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                      </button>
+                      <button type="button" data-action="delete-main" data-task-id="${escapeHtml(task.id)}" title="${escapeHtml(t('tooltipDeleteTask'))}"
+                        class="p-1 rounded-lg theme-text-muted hover:text-rose-600 hover:bg-rose-500/10 transition cursor-pointer">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                  ${task.tagIds.length > 0 ? `<div class="flex flex-wrap gap-1 mt-2">${renderTagBadgesHtml(task.tagIds, true)}</div>` : ''}
+                  <button type="button" data-action="add-sub" data-task-id="${escapeHtml(task.id)}" title="${escapeHtml(t('tooltipAddSub'))}"
+                    class="mt-2.5 inline-flex items-center gap-1 px-2 py-1 text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 hover:bg-indigo-500/20 rounded-lg transition cursor-pointer">
+                    ${escapeHtml(t('btnAddSubtaskInline'))}
+                  </button>
+                </td>
+              `;
+            }
+
+            rowsHtml.push(`
+              <tr class="theme-row-hover transition ${isMuted ? 'opacity-70' : ''} ${overdue ? 'bg-rose-500/[0.06]' : ''}">
+                ${mainTaskCell}
+                <td class="align-top py-3 px-4">
+                  <div class="text-sm font-medium theme-text-primary leading-snug break-words ${sub.status === 'done' ? 'line-through' : ''} ${sub.status === 'aborted' ? 'line-through text-rose-500/80' : ''}">
+                    ${escapeHtml(sub.description)}
+                  </div>
+                  ${renderTimestampRowHtml(sub)}
+                </td>
+                <td class="align-top py-3 px-3">
+                  <select data-action="change-status" data-task-id="${escapeHtml(task.id)}" data-sub-id="${escapeHtml(sub.id)}"
+                    class="w-full px-2.5 py-1.5 text-xs font-semibold rounded-xl border focus:outline-none focus:ring-2 focus:ring-indigo-500/30 cursor-pointer ${stStyle.select}">
+                    ${VALID_STATUSES.map(
+                      (st) => `<option value="${st}" ${sub.status === st ? 'selected' : ''}>${escapeHtml(getStatusLabel(st))}</option>`
+                    ).join('')}
+                  </select>
+                </td>
+                <td class="align-top py-3 px-3 text-center">
+                  <span class="inline-flex items-center justify-center min-w-[38px] px-2 py-1 text-xs font-bold rounded-lg bg-indigo-500/10 text-indigo-700 dark:text-indigo-300">
+                    ${sub.value}
+                  </span>
+                </td>
+                <td class="align-top py-3 px-3 text-center">
+                  <span class="inline-flex items-center justify-center min-w-[38px] px-2 py-1 text-xs font-bold rounded-lg bg-slate-500/10 theme-text-secondary">
+                    ${sub.effort}
+                  </span>
+                </td>
+                <td class="align-top py-3 px-3 text-center">
+                  <span class="inline-flex items-center justify-center min-w-[46px] px-2 py-1 text-xs font-extrabold rounded-full ${getRoiBadgeClass(sub.roi)}">
+                    ${sub.roi.toFixed(2)}
+                  </span>
+                </td>
+                <td class="align-top py-3 px-3 text-right">
+                  <div class="inline-flex items-center gap-0.5">
+                    <button type="button" data-action="edit-sub" data-task-id="${escapeHtml(task.id)}" data-sub-id="${escapeHtml(sub.id)}" title="${escapeHtml(t('tooltipEditSub'))}"
+                      class="p-1.5 rounded-lg theme-text-muted hover:text-indigo-600 hover:bg-indigo-500/10 transition cursor-pointer">
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                      </svg>
+                    </button>
+                    <button type="button" data-action="delete-sub" data-task-id="${escapeHtml(task.id)}" data-sub-id="${escapeHtml(sub.id)}" title="${escapeHtml(t('tooltipDeleteSub'))}"
+                      class="p-1.5 rounded-lg theme-text-muted hover:text-rose-600 hover:bg-rose-500/10 transition cursor-pointer">
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            `);
+          });
+        }
+
+        tbody.innerHTML = rowsHtml.join('');
+      }
+
+      function renderKanbanView(groups) {
+        const kanbanEl = document.getElementById('kanbanViewSection');
+        if (groups.length === 0) {
+          kanbanEl.innerHTML = '';
+          kanbanEl.classList.add('hidden');
+          showEmptyState();
+          return;
+        }
+
+        document.getElementById('emptyState').classList.add('hidden');
+        kanbanEl.classList.remove('hidden');
+
+        // Gom các subtask theo 5 trạng thái
+        const columns = {
+          backlog: [],
+          todo: [],
+          in_progress: [],
+          done: [],
+          aborted: [],
+        };
+
+        for (const group of groups) {
+          for (const sub of group.subtasks) {
+            if (columns[sub.status]) {
+              columns[sub.status].push({ task: group.task, sub });
+            }
+          }
+        }
+
+        // Sắp xếp trong từng cột theo tiêu chí sort hiện tại
+        for (const st of VALID_STATUSES) {
+          columns[st].sort((a, b) => compareSubtasks(a.sub, b.sub, state.sortBy, false));
+        }
+
+        kanbanEl.innerHTML = VALID_STATUSES.map((st) => {
+          const items = columns[st];
+          const stStyle = STATUS_STYLES[st];
+          return `
+            <div class="theme-surface border border-t-4 ${stStyle.colHeader} rounded-2xl shadow-xs flex flex-col max-h-[75vh]">
+              <div class="px-3.5 py-2.5 border-b theme-border flex items-center justify-between shrink-0">
+                <div class="flex items-center gap-2">
+                  <span class="w-2 h-2 rounded-full ${stStyle.dot}"></span>
+                  <h3 class="text-xs font-bold uppercase tracking-wider theme-text-primary">${escapeHtml(getStatusLabel(st))}</h3>
+                </div>
+                <span class="px-2 py-0.5 text-[11px] font-bold rounded-full theme-subtle theme-text-secondary">${items.length}</span>
+              </div>
+              <div data-kanban-col="${st}" class="kanban-dropzone flex-1 overflow-y-auto custom-scroll p-2.5 space-y-2.5 min-h-[160px] transition">
+                ${
+                  items.length === 0
+                    ? `<div class="h-24 flex items-center justify-center text-xs theme-text-muted italic border border-dashed theme-border rounded-xl">${escapeHtml(t('kanbanEmptyCol'))}</div>`
+                    : items
+                        .map(({ task, sub }) => {
+                          const accent = getTaskAccentColor(task);
+                          const overdue = isTodoOverdue(sub);
+                          return `
+                            <article draggable="true" data-task-id="${escapeHtml(task.id)}" data-sub-id="${escapeHtml(sub.id)}"
+                              class="kanban-card theme-surface-alt border ${overdue ? 'border-rose-400 dark:border-rose-500/60 bg-rose-500/[0.06]' : ''} rounded-xl p-3 shadow-2xs hover:border-indigo-400 transition cursor-grab active:cursor-grabbing"
+                              style="border-left: 4px solid ${overdue ? '#f43f5e' : accent};">
+                              <div class="flex items-start justify-between gap-2">
+                                <span class="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 leading-tight break-words">${escapeHtml(task.title)}</span>
+                                <span class="px-2 py-0.5 text-[11px] font-extrabold rounded-full shrink-0 ${getRoiBadgeClass(sub.roi)}">
+                                  ${sub.roi.toFixed(2)}
+                                </span>
+                              </div>
+                              <p class="mt-1.5 text-xs sm:text-sm font-medium theme-text-primary leading-snug break-words ${sub.status === 'done' || sub.status === 'aborted' ? 'line-through opacity-75' : ''}">
+                                ${escapeHtml(sub.description)}
+                              </p>
+                              ${task.tagIds.length > 0 ? `<div class="flex flex-wrap gap-1 mt-2">${renderTagBadgesHtml(task.tagIds, true)}</div>` : ''}
+                              <div class="mt-2.5 flex items-center justify-between gap-2 pt-2 border-t theme-border">
+                                <div class="flex items-center gap-1.5 text-[11px]">
+                                  <span class="px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 font-semibold">${escapeHtml(t('labelValueShort'))}: ${sub.value}</span>
+                                  <span class="px-1.5 py-0.5 rounded bg-slate-500/10 theme-text-secondary font-semibold">${escapeHtml(t('labelEffortShort'))}: ${sub.effort}</span>
+                                </div>
+                                <div class="flex items-center gap-0.5">
+                                  <button type="button" data-action="edit-sub" data-task-id="${escapeHtml(task.id)}" data-sub-id="${escapeHtml(sub.id)}" title="${escapeHtml(t('tooltipEditSub'))}"
+                                    class="p-1 rounded-lg theme-text-muted hover:text-indigo-600 hover:bg-indigo-500/10 transition cursor-pointer">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                      <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                    </svg>
+                                  </button>
+                                  <button type="button" data-action="delete-sub" data-task-id="${escapeHtml(task.id)}" data-sub-id="${escapeHtml(sub.id)}" title="${escapeHtml(t('tooltipDeleteSub'))}"
+                                    class="p-1 rounded-lg theme-text-muted hover:text-rose-600 hover:bg-rose-500/10 transition cursor-pointer">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                      <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                  </button>
+                                </div>
+                              </div>
+                              ${renderTimestampRowHtml(sub)}
+                            </article>
+                          `;
+                        })
+                        .join('')
+                }
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      function renderAll() {
+        applyTheme();
+        applyStaticTranslations();
+        renderCompactStats();
+        renderTagFilterBar();
+
+        const groups = getFilteredAndSortedTasks();
+        if (state.viewMode === 'table') {
+          document.getElementById('kanbanViewSection').classList.add('hidden');
+          renderTableView(groups);
+        } else {
+          document.getElementById('tableViewSection').classList.add('hidden');
+          renderKanbanView(groups);
+        }
+      }
+
+      // =========================================================================
+      // 8. MODAL CÔNG VIỆC CHÍNH (MAIN TASK)
+      // =========================================================================
+      function renderColorPickerHtml(selectedKey, attrName) {
+        return TAG_COLORS.map(
+          (c) => `
+            <button type="button" ${attrName}="${c.key}"
+              class="w-5 h-5 rounded-full ${c.swatch} transition cursor-pointer ${
+                c.key === selectedKey ? 'ring-2 ring-offset-2 ring-indigo-500 dark:ring-offset-slate-900 scale-110' : 'opacity-70 hover:opacity-100'
+              }">
+            </button>
+          `
+        ).join('');
+      }
+
+      function renderMainTaskTagSelector() {
+        const container = document.getElementById('mainTaskTagSelector');
+        if (state.tags.length === 0) {
+          container.innerHTML = `<span class="text-xs theme-text-muted italic">${escapeHtml(t('noTagsYet'))}</span>`;
+          return;
+        }
+        container.innerHTML = state.tags
+          .map((tag) => {
+            const cfg = getTagColorConfig(tag.color);
+            const selected = mainTaskModalState.selectedTagIds.has(tag.id);
+            return `
+              <button type="button" data-select-tag-id="${escapeHtml(tag.id)}"
+                class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-full border transition cursor-pointer ${
+                  selected ? 'ring-2 ring-indigo-500/60 ' + cfg.badge : 'theme-subtle theme-text-muted hover:opacity-90'
+                }">
+                <span class="w-1.5 h-1.5 rounded-full ${cfg.swatch}"></span>
+                ${escapeHtml(tag.name)}
+                ${selected ? '<span>✓</span>' : ''}
+              </button>
+            `;
+          })
+          .join('');
+      }
+
+      function renderDraftSubtasks() {
+        const container = document.getElementById('draftSubtasksList');
+        container.innerHTML = mainTaskModalState.draftSubtasks
+          .map((row, idx) => {
+            const roi = calcRoi(row.value, row.effort);
+            return `
+              <div class="p-3 rounded-xl border theme-surface-alt space-y-2" data-draft-idx="${idx}">
+                <div class="flex items-start gap-2">
+                  <input type="text" data-draft-field="description" data-draft-idx="${idx}" value="${escapeHtml(row.description)}"
+                    placeholder="${escapeHtml(t('draftDescPlaceholder'))}"
+                    class="flex-1 px-3 py-1.5 text-xs sm:text-sm rounded-lg border theme-input focus:outline-none focus:ring-2 focus:ring-indigo-500/30" />
+                  ${
+                    mainTaskModalState.draftSubtasks.length > 1
+                      ? `<button type="button" data-remove-draft="${idx}" class="p-1.5 rounded-lg theme-text-muted hover:text-rose-600 hover:bg-rose-500/10 transition cursor-pointer">
+                          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>`
+                      : ''
+                  }
+                </div>
+                <div class="flex flex-wrap items-center gap-2 text-xs">
+                  <label class="inline-flex items-center gap-1.5 theme-text-muted">
+                    <span>${escapeHtml(t('labelValueShort'))}:</span>
+                    <input type="number" min="1" max="100" step="any" data-draft-field="value" data-draft-idx="${idx}" value="${row.value}"
+                      class="w-16 px-2 py-1 text-xs font-semibold rounded-lg border theme-input text-center" />
+                  </label>
+                  <label class="inline-flex items-center gap-1.5 theme-text-muted">
+                    <span>${escapeHtml(t('labelEffortShort'))}:</span>
+                    <input type="number" min="1" max="100" step="any" data-draft-field="effort" data-draft-idx="${idx}" value="${row.effort}"
+                      class="w-16 px-2 py-1 text-xs font-semibold rounded-lg border theme-input text-center" />
+                  </label>
+                  <select data-draft-field="status" data-draft-idx="${idx}"
+                    class="px-2 py-1 text-xs font-semibold rounded-lg border theme-input cursor-pointer">
+                    ${VALID_STATUSES.map(
+                      (st) => `<option value="${st}" ${row.status === st ? 'selected' : ''}>${escapeHtml(getStatusLabel(st))}</option>`
+                    ).join('')}
+                  </select>
+                  <span class="ml-auto px-2 py-0.5 rounded-full font-bold ${getRoiBadgeClass(roi)}" data-draft-roi="${idx}">
+                    ROI: ${roi.toFixed(2)}
+                  </span>
+                </div>
+              </div>
+            `;
+          })
+          .join('');
+      }
+
+      function openMainTaskModal(mode, taskId = null) {
+        mainTaskModalState.mode = mode;
+        mainTaskModalState.taskId = taskId;
+        document.getElementById('mainTaskFormError').classList.add('hidden');
+        document.getElementById('quickTagNameInput').value = '';
+        document.getElementById('quickTagColorPicker').innerHTML = renderColorPickerHtml(state.quickTagColor, 'data-quick-color');
+
+        const draftSection = document.getElementById('draftSubtasksSection');
+
+        if (mode === 'edit' && taskId) {
+          const task = state.tasks.find((tk) => tk.id === taskId);
+          if (!task) return;
+          document.getElementById('mainTaskModalTitle').textContent = t('modalEditMainTitle');
+          document.getElementById('mainTaskTitleInput').value = task.title;
+          mainTaskModalState.selectedTagIds = new Set(task.tagIds);
+          draftSection.classList.add('hidden');
+        } else {
+          document.getElementById('mainTaskModalTitle').textContent = t('modalAddMainTitle');
+          document.getElementById('mainTaskTitleInput').value = '';
+          mainTaskModalState.selectedTagIds = new Set();
+          mainTaskModalState.draftSubtasks = [
+            { description: '', value: 50, effort: 25, status: 'backlog' },
+          ];
+          draftSection.classList.remove('hidden');
+          renderDraftSubtasks();
+        }
+
+        renderMainTaskTagSelector();
+        const modal = document.getElementById('mainTaskModal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        setTimeout(() => document.getElementById('mainTaskTitleInput').focus(), 40);
+      }
+
+      function closeMainTaskModal() {
+        const modal = document.getElementById('mainTaskModal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+
+      // =========================================================================
+      // 9. MODAL TASK NHỎ (SUBTASK)
+      // =========================================================================
+      function updateSubtaskRoiPreview() {
+        const val = Number(document.getElementById('subtaskValueInput').value);
+        const eff = Number(document.getElementById('subtaskEffortInput').value);
+        const badge = document.getElementById('subtaskRoiPreviewBadge');
+        if (isValidScore(val) && isValidScore(eff)) {
+          const roi = calcRoi(val, eff);
+          badge.textContent = roi.toFixed(2);
+          badge.className = `px-2.5 py-0.5 rounded-full text-xs font-bold ${getRoiBadgeClass(roi)}`;
+        } else {
+          badge.textContent = '—';
+          badge.className = 'px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-500/15 text-rose-600 dark:text-rose-400';
+        }
+      }
+
+      function openSubtaskModal(taskId, subId = null) {
+        const task = state.tasks.find((tk) => tk.id === taskId);
+        if (!task) return;
+        document.getElementById('subtaskFormError').classList.add('hidden');
+        document.getElementById('subtaskParentIdInput').value = taskId;
+        document.getElementById('subtaskParentName').textContent = task.title;
+
+        if (subId) {
+          const sub = task.subtasks.find((s) => s.id === subId);
+          if (!sub) return;
+          document.getElementById('subtaskModalTitle').textContent = t('modalEditSubTitle');
+          document.getElementById('subtaskIdInput').value = sub.id;
+          document.getElementById('subtaskDescInput').value = sub.description;
+          document.getElementById('subtaskValueInput').value = sub.value;
+          document.getElementById('subtaskEffortInput').value = sub.effort;
+          document.getElementById('subtaskStatusSelect').value = sub.status;
+        } else {
+          document.getElementById('subtaskModalTitle').textContent = t('modalAddSubTitle');
+          document.getElementById('subtaskIdInput').value = '';
+          document.getElementById('subtaskDescInput').value = '';
+          document.getElementById('subtaskValueInput').value = 50;
+          document.getElementById('subtaskEffortInput').value = 25;
+          document.getElementById('subtaskStatusSelect').value = 'backlog';
+        }
+
+        updateSubtaskRoiPreview();
+        const modal = document.getElementById('subtaskModal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        setTimeout(() => document.getElementById('subtaskDescInput').focus(), 40);
+      }
+
+      function closeSubtaskModal() {
+        const modal = document.getElementById('subtaskModal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+
+      // =========================================================================
+      // 10. MODAL QUẢN LÝ TAG ĐỘC LẬP
+      // =========================================================================
+      function renderTagManagerList() {
+        document.getElementById('newTagColorPicker').innerHTML = renderColorPickerHtml(state.newTagColor, 'data-new-tag-color');
+        const container = document.getElementById('tagManagerList');
+
+        if (state.tags.length === 0) {
+          container.innerHTML = `<div class="text-center py-6 text-xs theme-text-muted italic">${escapeHtml(t('noTagsYet'))}</div>`;
+          return;
+        }
+
+        container.innerHTML = state.tags
+          .map((tag) => {
+            const cfg = getTagColorConfig(tag.color);
+            const usage = state.tasks.filter((tk) => tk.tagIds.includes(tag.id)).length;
+
+            if (state.editingTagId === tag.id) {
+              return `
+                <div class="p-3 rounded-xl border border-indigo-400 theme-surface-alt space-y-2.5" data-edit-tag-row="${escapeHtml(tag.id)}">
+                  <div class="flex items-center gap-2">
+                    <input type="text" id="editTagNameInput" value="${escapeHtml(tag.name)}"
+                      class="flex-1 px-3 py-1.5 text-sm rounded-lg border theme-input focus:outline-none focus:ring-2 focus:ring-indigo-500/30" />
+                    <button type="button" data-save-edit-tag="${escapeHtml(tag.id)}"
+                      class="px-3 py-1.5 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg cursor-pointer">
+                      ${escapeHtml(t('btnSave'))}
+                    </button>
+                    <button type="button" data-cancel-edit-tag="true"
+                      class="px-2.5 py-1.5 text-xs font-medium theme-text-muted hover:bg-slate-500/10 rounded-lg cursor-pointer">
+                      ${escapeHtml(t('btnCancel'))}
+                    </button>
+                  </div>
+                  <div class="flex flex-wrap items-center gap-1.5" id="editTagColorPicker">
+                    ${renderColorPickerHtml(tag.color, 'data-edit-tag-color')}
+                  </div>
+                </div>
+              `;
+            }
+
+            return `
+              <div class="flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl border theme-border theme-surface-alt">
+                <div class="flex items-center gap-2.5 min-w-0">
+                  <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 text-xs font-semibold rounded-full border ${cfg.badge}">
+                    <span class="w-1.5 h-1.5 rounded-full ${cfg.swatch}"></span>
+                    ${escapeHtml(tag.name)}
+                  </span>
+                  <span class="text-[11px] theme-text-muted">${escapeHtml(t('tagUsageCount')(usage))}</span>
+                </div>
+                <div class="flex items-center gap-1 shrink-0">
+                  <button type="button" data-start-edit-tag="${escapeHtml(tag.id)}"
+                    class="px-2.5 py-1 text-xs font-medium theme-text-secondary hover:text-indigo-600 hover:bg-indigo-500/10 rounded-lg transition cursor-pointer">
+                    ${escapeHtml(t('btnEdit'))}
+                  </button>
+                  <button type="button" data-delete-tag="${escapeHtml(tag.id)}"
+                    class="px-2.5 py-1 text-xs font-medium text-rose-600 hover:bg-rose-500/10 rounded-lg transition cursor-pointer">
+                    ${escapeHtml(t('btnDelete'))}
+                  </button>
+                </div>
+              </div>
+            `;
+          })
+          .join('');
+      }
+
+      function openTagManagerModal() {
+        state.editingTagId = null;
+        document.getElementById('tagFormError').classList.add('hidden');
+        document.getElementById('newTagNameInput').value = '';
+        renderTagManagerList();
+        const modal = document.getElementById('tagManagerModal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+      }
+
+      function closeTagManagerModal() {
+        state.editingTagId = null;
+        const modal = document.getElementById('tagManagerModal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+
+      // =========================================================================
+      // 11. THAO TÁC DỮ LIỆU (CRUD + EXPORT / IMPORT)
+      // =========================================================================
+      function updateSubtaskStatus(taskId, subId, newStatus) {
+        if (!VALID_STATUSES.includes(newStatus)) return;
+        const task = state.tasks.find((tk) => tk.id === taskId);
+        if (!task) return;
+        const sub = task.subtasks.find((s) => s.id === subId);
+        if (!sub || sub.status === newStatus) return;
+
+        sub.status = newStatus;
+        sub.completedAt = newStatus === 'done' ? new Date().toISOString() : null;
+        sub.todoSince = newStatus === 'todo' ? new Date().toISOString() : null;
+        saveData(true);
+        renderAll();
+        showToast(t('toastStatusChanged')(getStatusLabel(newStatus)), 'info');
+      }
+
+      function deleteMainTask(taskId) {
+        const task = state.tasks.find((tk) => tk.id === taskId);
+        if (!task) return;
+        openConfirmModal(t('confirmDeleteTask')(task.title), () => {
+          state.tasks = state.tasks.filter((tk) => tk.id !== taskId);
+          saveData(true);
+          renderAll();
+          showToast(t('toastTaskDeleted'), 'info');
+        });
+      }
+
+      function deleteSubtask(taskId, subId) {
+        const task = state.tasks.find((tk) => tk.id === taskId);
+        if (!task) return;
+        const sub = task.subtasks.find((s) => s.id === subId);
+        if (!sub) return;
+
+        openConfirmModal(t('confirmDeleteSub')(sub.description), () => {
+          task.subtasks = task.subtasks.filter((s) => s.id !== subId);
+          if (task.subtasks.length === 0) {
+            state.tasks = state.tasks.filter((tk) => tk.id !== taskId);
+          }
+          saveData(true);
+          renderAll();
+          showToast(t('toastSubDeleted'), 'info');
+        });
+      }
+
+      function exportJson() {
+        const data = {
+          version: 4,
+          exportedAt: new Date().toISOString(),
+          updatedAt: state.updatedAt || new Date().toISOString(),
+          tags: state.tags,
+          tasks: state.tasks,
+        };
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `roi-tasks-backup-${new Date().toISOString().slice(0, 10)}.json`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+        showToast(t('toastExportSuccess'), 'success');
+      }
+
+      function importJson(file) {
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          try {
+            const parsed = JSON.parse(e.target.result);
+            if (!parsed || !Array.isArray(parsed.tasks)) {
+              throw new Error(t('errImportInvalid'));
+            }
+            const importedTags = Array.isArray(parsed.tags)
+              ? parsed.tags
+                  .filter((tg) => tg && tg.id && String(tg.name || '').trim())
+                  .map((tg) => ({
+                    id: String(tg.id),
+                    name: String(tg.name).trim(),
+                    color: TAG_COLORS.some((c) => c.key === tg.color) ? tg.color : 'indigo',
+                  }))
+              : [];
+            const validTagIds = new Set(importedTags.map((tg) => tg.id));
+            state.tags = importedTags;
+            state.tasks = parsed.tasks.map((tk) => normalizeTask(tk, validTagIds));
+            state.tagFilter = 'all';
+            saveData(true);
+            renderAll();
+            showToast(t('toastImportSuccess')(state.tasks.length, state.tags.length), 'success');
+          } catch (err) {
+            showToast(t('errImportInvalid'), 'error');
+          }
+        };
+        reader.readAsText(file);
+      }
+
+      // =========================================================================
+      // 12. GẮN SỰ KIỆN (EVENT BINDING)
+      // =========================================================================
+      function bindEvents() {
+        // Chuyển đổi ngôn ngữ VI ↔ EN
+        document.querySelectorAll('.lang-btn').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const lang = btn.dataset.lang;
+            if (lang !== state.language) {
+              state.language = lang;
+              saveData(false);
+              renderAll();
+              if (!document.getElementById('tagManagerModal').classList.contains('hidden')) {
+                renderTagManagerList();
+              }
+            }
+          });
+        });
+
+        // Chuyển đổi Light ↔ Dark Mode
+        document.getElementById('btnToggleTheme').addEventListener('click', () => {
+          state.theme = state.theme === 'dark' ? 'light' : 'dark';
+          applyTheme();
+          saveData(false);
+        });
+
+        // Header buttons
+        document.getElementById('btnOpenAddTaskModal').addEventListener('click', () => openMainTaskModal('add'));
+        document.getElementById('btnOpenTagModal').addEventListener('click', openTagManagerModal);
+        document.getElementById('btnOpenDriveModal').addEventListener('click', openDriveModal);
+        document.getElementById('btnExportJson').addEventListener('click', exportJson);
+        document.getElementById('inputImportJson').addEventListener('change', (e) => {
+          importJson(e.target.files[0]);
+          e.target.value = '';
+        });
+
+        // Banner hết phiên Google Drive
+        document.getElementById('btnBannerReconnect').addEventListener('click', () => {
+          connectDriveAccount({
+            forceSelectAccount: !state.activeDriveEmail,
+            targetEmail: state.activeDriveEmail,
+            forceLoad: false,
+          });
+        });
+
+        document.getElementById('btnBannerDismiss').addEventListener('click', () => {
+          state.driveBannerDismissed = true;
+          renderDriveStatusUI();
+        });
+
+        // Banner & Badge cảnh báo quá hạn trạng thái Cần làm (> 7 ngày)
+        const filterToTodo = () => {
+          state.statusFilter = 'todo';
+          renderAll();
+        };
+        document.getElementById('btnOverdueFilterTodo').addEventListener('click', filterToTodo);
+        document.getElementById('statOverdueBadge').addEventListener('click', filterToTodo);
+        document.getElementById('btnOverdueDismiss').addEventListener('click', () => {
+          state.todoBannerDismissed = true;
+          renderCompactStats();
+        });
+
+        // Modal Google Drive (Chỉ đóng khi bấm nút)
+        document.getElementById('btnCloseDriveModal').addEventListener('click', closeDriveModal);
+        document.getElementById('btnDoneDriveModal').addEventListener('click', closeDriveModal);
+
+        document.getElementById('btnSaveDriveClientId').addEventListener('click', () => {
+          const val = document.getElementById('driveClientIdInput').value.trim();
+          const errEl = document.getElementById('driveModalError');
+          if (!val) {
+            errEl.textContent = t('errDriveClientIdReq');
+            errEl.classList.remove('hidden');
+            return;
+          }
+          errEl.classList.add('hidden');
+          state.driveClientId = val;
+          gisTokenClient = null;
+          saveData(false);
+          renderDriveStatusUI();
+          showToast(t('toastDriveClientIdSaved'), 'success');
+        });
+
+        document.getElementById('btnDriveConnect').addEventListener('click', () => {
+          const val = document.getElementById('driveClientIdInput').value.trim();
+          const errEl = document.getElementById('driveModalError');
+          if (!val) {
+            errEl.textContent = t('errDriveClientIdReq');
+            errEl.classList.remove('hidden');
+            document.getElementById('driveClientIdInput').focus();
+            return;
+          }
+          errEl.classList.add('hidden');
+          if (val !== state.driveClientId) {
+            state.driveClientId = val;
+            gisTokenClient = null;
+            saveData(false);
+          }
+          connectDriveAccount({ forceSelectAccount: true, targetEmail: '', forceLoad: false });
+        });
+
+        document.getElementById('btnDriveSwitchAccount').addEventListener('click', () => {
+          const val = document.getElementById('driveClientIdInput').value.trim();
+          const errEl = document.getElementById('driveModalError');
+          if (!val) {
+            errEl.textContent = t('errDriveClientIdReq');
+            errEl.classList.remove('hidden');
+            document.getElementById('driveClientIdInput').focus();
+            return;
+          }
+          errEl.classList.add('hidden');
+          if (val !== state.driveClientId) {
+            state.driveClientId = val;
+            gisTokenClient = null;
+            saveData(false);
+          }
+          connectDriveAccount({ forceSelectAccount: true, targetEmail: '', forceLoad: true });
+        });
+
+        document.getElementById('driveAccountsList').addEventListener('click', (e) => {
+          const switchBtn = e.target.closest('[data-switch-drive-email]');
+          if (switchBtn) {
+            const email = switchBtn.dataset.switchDriveEmail;
+            if (!state.driveClientId) {
+              const errEl = document.getElementById('driveModalError');
+              errEl.textContent = t('errDriveClientIdReq');
+              errEl.classList.remove('hidden');
+              return;
+            }
+            connectDriveAccount({ forceSelectAccount: true, targetEmail: email, forceLoad: true });
+            return;
+          }
+          const removeBtn = e.target.closest('[data-remove-drive-email]');
+          if (removeBtn) {
+            removeDriveAccount(removeBtn.dataset.removeDriveEmail);
+          }
+        });
+
+        document.getElementById('btnDriveSaveNow').addEventListener('click', () => saveToDrive(false));
+        document.getElementById('btnDriveLoadNow').addEventListener('click', () => loadFromDrive(true));
+        document.getElementById('btnDriveDisconnect').addEventListener('click', disconnectDrive);
+
+        document.getElementById('btnCopyOrigin').addEventListener('click', () => {
+          const originText = document.getElementById('driveCurrentOrigin').textContent || window.location.origin;
+          const tempInput = document.createElement('textarea');
+          tempInput.value = originText;
+          tempInput.style.position = 'fixed';
+          tempInput.style.opacity = '0';
+          document.body.appendChild(tempInput);
+          tempInput.select();
+          try {
+            document.execCommand('copy');
+            showToast(t('toastOriginCopied'), 'success');
+          } catch (_) {}
+          tempInput.remove();
+        });
+
+        // View Switch (Table ↔ Kanban)
+        document.querySelectorAll('.view-switch-btn').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const mode = btn.dataset.view;
+            if (mode !== state.viewMode) {
+              state.viewMode = mode;
+              saveData(false);
+              renderAll();
+            }
+          });
+        });
+
+        // Status Filter
+        document.getElementById('statusFilterTabs').addEventListener('click', (e) => {
+          const btn = e.target.closest('.status-tab');
+          if (!btn) return;
+          state.statusFilter = btn.dataset.status;
+          renderAll();
+        });
+
+        // Sort Select & Reset Sort
+        document.getElementById('sortSelect').addEventListener('change', (e) => {
+          const val = e.target.value;
+          if (VALID_SORTS.includes(val)) {
+            state.sortBy = val;
+            saveData(false);
+            renderAll();
+          }
+        });
+
+        document.getElementById('btnResetSort').addEventListener('click', () => {
+          state.sortBy = 'roi_desc';
+          saveData(false);
+          renderAll();
+          showToast(t('toastSortReset'), 'info');
+        });
+
+        // Search Input
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+          state.searchQuery = e.target.value;
+          renderAll();
+        });
+
+        // Tag Filter Bar
+        document.getElementById('tagFilterList').addEventListener('click', (e) => {
+          const btn = e.target.closest('[data-tag-filter]');
+          if (!btn) return;
+          state.tagFilter = btn.dataset.tagFilter;
+          renderAll();
+        });
+
+        // Empty State actions
+        document.getElementById('btnClearFilters').addEventListener('click', () => {
+          state.statusFilter = 'all';
+          state.tagFilter = 'all';
+          state.searchQuery = '';
+          document.getElementById('searchInput').value = '';
+          renderAll();
+        });
+
+        document.getElementById('btnEmptyAddTask').addEventListener('click', () => {
+          openMainTaskModal('add');
+        });
+
+        // Table View Event Delegation
+        const tableBody = document.getElementById('taskTableBody');
+        tableBody.addEventListener('click', (e) => {
+          const tagBadge = e.target.closest('[data-click-tag]');
+          if (tagBadge) {
+            state.tagFilter = tagBadge.dataset.clickTag;
+            renderAll();
+            return;
+          }
+          const btn = e.target.closest('[data-action]');
+          if (!btn) return;
+          const { action, taskId, subId } = btn.dataset;
+          if (action === 'edit-main') openMainTaskModal('edit', taskId);
+          else if (action === 'delete-main') deleteMainTask(taskId);
+          else if (action === 'add-sub') openSubtaskModal(taskId);
+          else if (action === 'edit-sub') openSubtaskModal(taskId, subId);
+          else if (action === 'delete-sub') deleteSubtask(taskId, subId);
+        });
+
+        tableBody.addEventListener('change', (e) => {
+          const sel = e.target.closest('select[data-action="change-status"]');
+          if (!sel) return;
+          updateSubtaskStatus(sel.dataset.taskId, sel.dataset.subId, sel.value);
+        });
+
+        // Kanban View Event Delegation + Drag & Drop
+        const kanbanEl = document.getElementById('kanbanViewSection');
+        kanbanEl.addEventListener('click', (e) => {
+          const tagBadge = e.target.closest('[data-click-tag]');
+          if (tagBadge) {
+            state.tagFilter = tagBadge.dataset.clickTag;
+            renderAll();
+            return;
+          }
+          const btn = e.target.closest('[data-action]');
+          if (!btn) return;
+          const { action, taskId, subId } = btn.dataset;
+          if (action === 'edit-sub') openSubtaskModal(taskId, subId);
+          else if (action === 'delete-sub') deleteSubtask(taskId, subId);
+        });
+
+        kanbanEl.addEventListener('dragstart', (e) => {
+          const card = e.target.closest('.kanban-card');
+          if (!card) return;
+          draggedPayload = { taskId: card.dataset.taskId, subId: card.dataset.subId };
+          card.classList.add('opacity-40');
+          e.dataTransfer.effectAllowed = 'move';
+        });
+
+        kanbanEl.addEventListener('dragend', (e) => {
+          const card = e.target.closest('.kanban-card');
+          if (card) card.classList.remove('opacity-40');
+          document.querySelectorAll('.kanban-dropzone-active').forEach((z) => z.classList.remove('kanban-dropzone-active'));
+          draggedPayload = null;
+        });
+
+        kanbanEl.addEventListener('dragover', (e) => {
+          const zone = e.target.closest('.kanban-dropzone');
+          if (!zone) return;
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'move';
+          zone.classList.add('kanban-dropzone-active');
+        });
+
+        kanbanEl.addEventListener('dragleave', (e) => {
+          const zone = e.target.closest('.kanban-dropzone');
+          if (zone && !zone.contains(e.relatedTarget)) {
+            zone.classList.remove('kanban-dropzone-active');
+          }
+        });
+
+        kanbanEl.addEventListener('drop', (e) => {
+          const zone = e.target.closest('.kanban-dropzone');
+          if (!zone || !draggedPayload) return;
+          e.preventDefault();
+          zone.classList.remove('kanban-dropzone-active');
+          const targetStatus = zone.dataset.kanbanCol;
+          updateSubtaskStatus(draggedPayload.taskId, draggedPayload.subId, targetStatus);
+          draggedPayload = null;
+        });
+
+        // =====================================================================
+        // MODAL CÔNG VIỆC CHÍNH (CHỈ ĐÓNG KHI CLICK BUTTON)
+        // =====================================================================
+        document.getElementById('btnCloseMainTaskModal').addEventListener('click', closeMainTaskModal);
+        document.getElementById('btnCancelMainTaskModal').addEventListener('click', closeMainTaskModal);
+
+        document.getElementById('mainTaskTagSelector').addEventListener('click', (e) => {
+          const btn = e.target.closest('[data-select-tag-id]');
+          if (!btn) return;
+          const id = btn.dataset.selectTagId;
+          if (mainTaskModalState.selectedTagIds.has(id)) {
+            mainTaskModalState.selectedTagIds.delete(id);
+          } else {
+            mainTaskModalState.selectedTagIds.add(id);
+          }
+          renderMainTaskTagSelector();
+        });
+
+        document.getElementById('quickTagColorPicker').addEventListener('click', (e) => {
+          const btn = e.target.closest('[data-quick-color]');
+          if (!btn) return;
+          state.quickTagColor = btn.dataset.quickColor;
+          document.getElementById('quickTagColorPicker').innerHTML = renderColorPickerHtml(state.quickTagColor, 'data-quick-color');
+        });
+
+        document.getElementById('btnQuickAddTag').addEventListener('click', () => {
+          const input = document.getElementById('quickTagNameInput');
+          const name = input.value.trim();
+          const errEl = document.getElementById('mainTaskFormError');
+          if (!name) return;
+          if (state.tags.some((tg) => tg.name.toLowerCase() === name.toLowerCase())) {
+            errEl.textContent = t('errTagDuplicate');
+            errEl.classList.remove('hidden');
+            return;
+          }
+          errEl.classList.add('hidden');
+          const newTag = { id: generateId('tag'), name, color: state.quickTagColor };
+          state.tags.push(newTag);
+          mainTaskModalState.selectedTagIds.add(newTag.id);
+          input.value = '';
+          saveData(true);
+          renderMainTaskTagSelector();
+          renderTagFilterBar();
+          showToast(t('toastTagCreated'), 'success');
+        });
+
+        document.getElementById('btnAddDraftSubtask').addEventListener('click', () => {
+          mainTaskModalState.draftSubtasks.push({ description: '', value: 50, effort: 25, status: 'backlog' });
+          renderDraftSubtasks();
+        });
+
+        const draftList = document.getElementById('draftSubtasksList');
+        draftList.addEventListener('input', (e) => {
+          const idx = Number(e.target.dataset.draftIdx);
+          const field = e.target.dataset.draftField;
+          if (Number.isNaN(idx) || !field || !mainTaskModalState.draftSubtasks[idx]) return;
+          mainTaskModalState.draftSubtasks[idx][field] = e.target.value;
+          if (field === 'value' || field === 'effort') {
+            const row = mainTaskModalState.draftSubtasks[idx];
+            const roi = calcRoi(row.value, row.effort);
+            const badge = draftList.querySelector(`[data-draft-roi="${idx}"]`);
+            if (badge) {
+              badge.textContent = `ROI: ${roi.toFixed(2)}`;
+              badge.className = `ml-auto px-2 py-0.5 rounded-full font-bold ${getRoiBadgeClass(roi)}`;
+            }
+          }
+        });
+
+        draftList.addEventListener('change', (e) => {
+          const idx = Number(e.target.dataset.draftIdx);
+          const field = e.target.dataset.draftField;
+          if (Number.isNaN(idx) || field !== 'status' || !mainTaskModalState.draftSubtasks[idx]) return;
+          mainTaskModalState.draftSubtasks[idx].status = e.target.value;
+        });
+
+        draftList.addEventListener('click', (e) => {
+          const btn = e.target.closest('[data-remove-draft]');
+          if (!btn) return;
+          const idx = Number(btn.dataset.removeDraft);
+          if (mainTaskModalState.draftSubtasks.length > 1) {
+            mainTaskModalState.draftSubtasks.splice(idx, 1);
+            renderDraftSubtasks();
+          }
+        });
+
+        document.getElementById('mainTaskForm').addEventListener('submit', (e) => {
+          e.preventDefault();
+          const errEl = document.getElementById('mainTaskFormError');
+          const title = document.getElementById('mainTaskTitleInput').value.trim();
+          if (!title) {
+            errEl.textContent = t('errTitleReq');
+            errEl.classList.remove('hidden');
+            return;
+          }
+
+          if (mainTaskModalState.mode === 'edit' && mainTaskModalState.taskId) {
+            const task = state.tasks.find((tk) => tk.id === mainTaskModalState.taskId);
+            if (task) {
+              task.title = title;
+              task.tagIds = Array.from(mainTaskModalState.selectedTagIds);
+              saveData(true);
+              renderAll();
+              closeMainTaskModal();
+              showToast(t('toastTaskUpdated'), 'success');
+            }
+            return;
+          }
+
+          // Mode add: kiểm tra các draft subtasks
+          const validSubs = [];
+          for (const row of mainTaskModalState.draftSubtasks) {
+            const desc = String(row.description || '').trim();
+            if (!desc) continue;
+            if (!isValidScore(row.value) || !isValidScore(row.effort)) {
+              errEl.textContent = t('errScoreRange');
+              errEl.classList.remove('hidden');
+              return;
+            }
+            const val = clampScore(row.value);
+            const eff = clampScore(row.effort);
+            const st = VALID_STATUSES.includes(row.status) ? row.status : 'backlog';
+            const now = new Date().toISOString();
+            validSubs.push({
+              id: generateId('sub'),
+              description: desc,
+              value: val,
+              effort: eff,
+              roi: calcRoi(val, eff),
+              status: st,
+              createdAt: now,
+              completedAt: st === 'done' ? now : null,
+              todoSince: st === 'todo' ? now : null,
+            });
+          }
+
+          if (validSubs.length === 0) {
+            errEl.textContent = t('errAtLeastOneSub');
+            errEl.classList.remove('hidden');
+            return;
+          }
+
+          errEl.classList.add('hidden');
+          state.tasks.push({
+            id: generateId('task'),
+            title,
+            tagIds: Array.from(mainTaskModalState.selectedTagIds),
+            subtasks: validSubs,
+          });
+          saveData(true);
+          renderAll();
+          closeMainTaskModal();
+          showToast(t('toastTaskAdded'), 'success');
+        });
+
+        // =====================================================================
+        // MODAL TASK NHỎ (SUBTASK - CHỈ ĐÓNG KHI CLICK BUTTON)
+        // =====================================================================
+        document.getElementById('btnCloseSubtaskModal').addEventListener('click', closeSubtaskModal);
+        document.getElementById('btnCancelSubtaskModal').addEventListener('click', closeSubtaskModal);
+
+        ['subtaskValueInput', 'subtaskEffortInput'].forEach((id) => {
+          document.getElementById(id).addEventListener('input', updateSubtaskRoiPreview);
+        });
+
+        document.getElementById('subtaskForm').addEventListener('submit', (e) => {
+          e.preventDefault();
+          const errEl = document.getElementById('subtaskFormError');
+          const taskId = document.getElementById('subtaskParentIdInput').value;
+          const subId = document.getElementById('subtaskIdInput').value;
+          const desc = document.getElementById('subtaskDescInput').value.trim();
+          const valRaw = document.getElementById('subtaskValueInput').value;
+          const effRaw = document.getElementById('subtaskEffortInput').value;
+          const status = document.getElementById('subtaskStatusSelect').value;
+
+          if (!desc) {
+            errEl.textContent = t('errDescReq');
+            errEl.classList.remove('hidden');
+            return;
+          }
+          if (!isValidScore(valRaw) || !isValidScore(effRaw)) {
+            errEl.textContent = t('errScoreRange');
+            errEl.classList.remove('hidden');
+            return;
+          }
+
+          const task = state.tasks.find((tk) => tk.id === taskId);
+          if (!task) return;
+
+          const val = clampScore(valRaw);
+          const eff = clampScore(effRaw);
+          const roi = calcRoi(val, eff);
+
+          if (subId) {
+            const sub = task.subtasks.find((s) => s.id === subId);
+            if (sub) {
+              sub.description = desc;
+              sub.value = val;
+              sub.effort = eff;
+              sub.roi = roi;
+              if (sub.status !== status) {
+                sub.status = status;
+                sub.completedAt = status === 'done' ? new Date().toISOString() : null;
+                sub.todoSince = status === 'todo' ? new Date().toISOString() : null;
+              }
+            }
+            showToast(t('toastSubUpdated'), 'success');
+          } else {
+            const now = new Date().toISOString();
+            task.subtasks.push({
+              id: generateId('sub'),
+              description: desc,
+              value: val,
+              effort: eff,
+              roi,
+              status,
+              createdAt: now,
+              completedAt: status === 'done' ? now : null,
+              todoSince: status === 'todo' ? now : null,
+            });
+            showToast(t('toastSubAdded'), 'success');
+          }
+
+          errEl.classList.add('hidden');
+          saveData(true);
+          renderAll();
+          closeSubtaskModal();
+        });
+
+        // =====================================================================
+        // MODAL QUẢN LÝ TAG (CHỈ ĐÓNG KHI CLICK BUTTON)
+        // =====================================================================
+        document.getElementById('btnCloseTagModal').addEventListener('click', closeTagManagerModal);
+        document.getElementById('btnDoneTagModal').addEventListener('click', closeTagManagerModal);
+
+        document.getElementById('newTagColorPicker').addEventListener('click', (e) => {
+          const btn = e.target.closest('[data-new-tag-color]');
+          if (!btn) return;
+          state.newTagColor = btn.dataset.newTagColor;
+          document.getElementById('newTagColorPicker').innerHTML = renderColorPickerHtml(state.newTagColor, 'data-new-tag-color');
+        });
+
+        document.getElementById('createTagForm').addEventListener('submit', (e) => {
+          e.preventDefault();
+          const input = document.getElementById('newTagNameInput');
+          const errEl = document.getElementById('tagFormError');
+          const name = input.value.trim();
+
+          if (!name) {
+            errEl.textContent = t('errTagNameReq');
+            errEl.classList.remove('hidden');
+            return;
+          }
+          if (state.tags.some((tg) => tg.name.toLowerCase() === name.toLowerCase())) {
+            errEl.textContent = t('errTagDuplicate');
+            errEl.classList.remove('hidden');
+            return;
+          }
+
+          errEl.classList.add('hidden');
+          state.tags.push({ id: generateId('tag'), name, color: state.newTagColor });
+          input.value = '';
+          saveData(true);
+          renderTagManagerList();
+          renderAll();
+          showToast(t('toastTagCreated'), 'success');
+        });
+
+        const tagListEl = document.getElementById('tagManagerList');
+        let editingTagColorTemp = 'indigo';
+
+        tagListEl.addEventListener('click', (e) => {
+          const startBtn = e.target.closest('[data-start-edit-tag]');
+          if (startBtn) {
+            const id = startBtn.dataset.startEditTag;
+            const tg = state.tags.find((x) => x.id === id);
+            if (!tg) return;
+            state.editingTagId = id;
+            editingTagColorTemp = tg.color;
+            renderTagManagerList();
+            return;
+          }
+
+          const colorBtn = e.target.closest('[data-edit-tag-color]');
+          if (colorBtn) {
+            editingTagColorTemp = colorBtn.dataset.editTagColor;
+            const picker = document.getElementById('editTagColorPicker');
+            if (picker) picker.innerHTML = renderColorPickerHtml(editingTagColorTemp, 'data-edit-tag-color');
+            return;
+          }
+
+          const cancelBtn = e.target.closest('[data-cancel-edit-tag]');
+          if (cancelBtn) {
+            state.editingTagId = null;
+            renderTagManagerList();
+            return;
+          }
+
+          const saveBtn = e.target.closest('[data-save-edit-tag]');
+          if (saveBtn) {
+            const id = saveBtn.dataset.saveEditTag;
+            const input = document.getElementById('editTagNameInput');
+            const errEl = document.getElementById('tagFormError');
+            const name = input ? input.value.trim() : '';
+            if (!name) {
+              errEl.textContent = t('errTagNameReq');
+              errEl.classList.remove('hidden');
+              return;
+            }
+            if (state.tags.some((tg) => tg.id !== id && tg.name.toLowerCase() === name.toLowerCase())) {
+              errEl.textContent = t('errTagDuplicate');
+              errEl.classList.remove('hidden');
+              return;
+            }
+            errEl.classList.add('hidden');
+            const tg = state.tags.find((x) => x.id === id);
+            if (tg) {
+              tg.name = name;
+              tg.color = editingTagColorTemp;
+            }
+            state.editingTagId = null;
+            saveData(true);
+            renderTagManagerList();
+            renderAll();
+            showToast(t('toastTagUpdated'), 'success');
+            return;
+          }
+
+          const delBtn = e.target.closest('[data-delete-tag]');
+          if (delBtn) {
+            const id = delBtn.dataset.deleteTag;
+            const tg = state.tags.find((x) => x.id === id);
+            if (!tg) return;
+            openConfirmModal(t('confirmDeleteTag')(tg.name), () => {
+              state.tags = state.tags.filter((x) => x.id !== id);
+              state.tasks.forEach((tk) => {
+                tk.tagIds = tk.tagIds.filter((tid) => tid !== id);
+              });
+              if (state.tagFilter === id) state.tagFilter = 'all';
+              saveData(true);
+              renderTagManagerList();
+              renderAll();
+              showToast(t('toastTagDeleted'), 'info');
+            });
+          }
+        });
+
+        // =====================================================================
+        // MODAL XÁC NHẬN (CHỈ ĐÓNG KHI CLICK BUTTON, KHÔNG ĐÓNG BẰNG ESC/BACKDROP)
+        // =====================================================================
+        document.getElementById('btnConfirmCancel').addEventListener('click', closeConfirmModal);
+        document.getElementById('btnConfirmOk').addEventListener('click', () => {
+          if (typeof pendingConfirmCallback === 'function') pendingConfirmCallback();
+          closeConfirmModal();
+        });
+      }
+
+      // =========================================================================
+      // 13. KHỞI CHẠY ỨNG DỤNG
+      // =========================================================================
+      function init() {
+        loadData();
+        bindEvents();
+        renderAll();
+        attemptAutoConnectDrive();
+      }
+
+      window.addEventListener('DOMContentLoaded', init);
+    })();
+  </script>
+</body>
+</html>
