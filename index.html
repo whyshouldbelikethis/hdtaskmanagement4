@@ -1018,6 +1018,8 @@
           toastDriveDisconnected: 'Đã ngắt kết nối Google Drive.',
           toastDriveAuthFailed: 'Đăng nhập Google thất bại hoặc đã bị hủy.',
           toastDriveSyncError: 'Lỗi khi đồng bộ Google Drive. Vui lòng thử lại.',
+          errDriveMissingScope: 'Bạn chưa tích chọn ô cấp quyền Google Drive trên màn hình đăng nhập Google. Vui lòng kết nối lại và tích chọn cấp quyền.',
+          errDriveApiDisabled: 'Google Drive API chưa được bật (Enable) trong Project trên Google Cloud Console.',
 
           legendTitle: 'Thang ROI:',
           legendHigh: 'Cao (Ưu tiên)',
@@ -1209,6 +1211,8 @@
           toastDriveDisconnected: 'Disconnected from Google Drive.',
           toastDriveAuthFailed: 'Google sign-in failed or was cancelled.',
           toastDriveSyncError: 'Error syncing with Google Drive. Please try again.',
+          errDriveMissingScope: 'You did not check the Google Drive permission box on the Google sign-in screen. Please reconnect and grant Drive access.',
+          errDriveApiDisabled: 'Google Drive API is not enabled in your Google Cloud Console project.',
 
           legendTitle: 'ROI Scale:',
           legendHigh: 'High (Priority)',
@@ -1650,6 +1654,25 @@
             scope: DRIVE_SCOPE,
             callback: (tokenResponse) => {
               if (tokenResponse && tokenResponse.access_token) {
+                const hasDriveScope =
+                  typeof window.google?.accounts?.oauth2?.hasGrantedAllScopes === 'function'
+                    ? window.google.accounts.oauth2.hasGrantedAllScopes(tokenResponse, DRIVE_SCOPE)
+                    : !tokenResponse.scope || tokenResponse.scope.includes('drive.file');
+
+                if (!hasDriveScope) {
+                  state.driveAccessToken = '';
+                  state.driveTokenExpiresAt = 0;
+                  state.driveStatus = 'disconnected';
+                  showDriveError(t('errDriveMissingScope'));
+                  renderDriveStatusUI();
+                  const errCb = pendingTokenErrorCallback;
+                  pendingTokenSuccessCallback = null;
+                  pendingTokenErrorCallback = null;
+                  if (typeof errCb === 'function') errCb(new Error('MISSING_DRIVE_SCOPE'));
+                  return;
+                }
+
+                clearDriveError();
                 state.driveAccessToken = tokenResponse.access_token;
                 const expiresInSec = Number(tokenResponse.expires_in) || 3500;
                 state.driveTokenExpiresAt = Date.now() + expiresInSec * 1000;
@@ -1678,6 +1701,38 @@
           });
         }
         return gisTokenClient;
+      }
+
+      function showDriveError(message) {
+        const errEl = document.getElementById('driveModalError');
+        if (errEl) {
+          errEl.textContent = message;
+          errEl.classList.remove('hidden');
+        }
+      }
+
+      function clearDriveError() {
+        const errEl = document.getElementById('driveModalError');
+        if (errEl) {
+          errEl.textContent = '';
+          errEl.classList.add('hidden');
+        }
+      }
+
+      async function extractDriveApiError(res, fallbackLabel) {
+        let detail = '';
+        try {
+          const data = await res.json();
+          detail = data?.error?.message || '';
+        } catch (_) {}
+        const lower = detail.toLowerCase();
+        if (lower.includes('has not been used in project') || lower.includes('is disabled')) {
+          return `${t('errDriveApiDisabled')} (HTTP ${res.status})`;
+        }
+        if (lower.includes('insufficient') || lower.includes('permission')) {
+          return `${t('errDriveMissingScope')} (HTTP ${res.status})`;
+        }
+        return detail ? `HTTP ${res.status}: ${detail}` : `${fallbackLabel} (HTTP ${res.status})`;
       }
 
       function requestDriveToken(interactive, onSuccess, onError, options = {}) {
@@ -1726,7 +1781,11 @@
       async function fetchDriveAccountProfile() {
         try {
           const res = await driveFetch('https://www.googleapis.com/drive/v3/about?fields=user(displayName,emailAddress,photoLink)');
-          if (!res.ok) return null;
+          if (!res.ok) {
+            const msg = await extractDriveApiError(res, 'Drive profile error');
+            showDriveError(msg);
+            return null;
+          }
           const data = await res.json();
           const user = data && data.user ? data.user : null;
           if (!user || !user.emailAddress) return null;
@@ -1782,8 +1841,12 @@
             }
             await loadFromDrive(Boolean(forceLoad || switched));
           },
-          () => {
-            showToast(t('toastDriveAuthFailed'), 'error');
+          (err) => {
+            if (!err || err.message !== 'MISSING_DRIVE_SCOPE') {
+              showToast(t('toastDriveAuthFailed'), 'error');
+            } else {
+              showToast(t('errDriveMissingScope'), 'error');
+            }
           },
           {
             prompt: promptMode,
@@ -1818,7 +1881,7 @@
         const q = encodeURIComponent(`name='${DRIVE_FILE_NAME}' and trashed=false`);
         const url = `https://www.googleapis.com/drive/v3/files?q=${q}&spaces=drive&fields=files(id,name,modifiedTime)&orderBy=modifiedTime desc`;
         const res = await driveFetch(url);
-        if (!res.ok) throw new Error(`Drive search failed (${res.status})`);
+        if (!res.ok) throw new Error(await extractDriveApiError(res, 'Drive search failed'));
         const data = await res.json();
         if (data && Array.isArray(data.files) && data.files.length > 0) {
           state.driveFileId = data.files[0].id;
@@ -1891,13 +1954,14 @@
           }
 
           if (!res.ok) {
-            throw new Error(`Drive upload failed (${res.status})`);
+            throw new Error(await extractDriveApiError(res, 'Drive upload failed'));
           }
 
           const result = await res.json();
           if (result && result.id) {
             state.driveFileId = result.id;
           }
+          clearDriveError();
           state.lastSyncAt = new Date().toISOString();
           state.driveStatus = 'synced';
           syncActiveAccountMeta();
@@ -1911,9 +1975,10 @@
         } catch (err) {
           if (err.message !== 'TOKEN_EXPIRED') {
             console.error('Lỗi lưu Google Drive:', err);
+            showDriveError(err.message || t('toastDriveSyncError'));
             state.driveStatus = hasValidDriveToken() ? 'synced' : 'expired';
             renderDriveStatusUI();
-            if (!silent) showToast(t('toastDriveSyncError'), 'error');
+            if (!silent) showToast(err.message || t('toastDriveSyncError'), 'error');
           }
           return false;
         }
@@ -1939,7 +2004,7 @@
           const res = await driveFetch(
             `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}?alt=media`
           );
-          if (!res.ok) throw new Error(`Drive download failed (${res.status})`);
+          if (!res.ok) throw new Error(await extractDriveApiError(res, 'Drive download failed'));
           const remote = await res.json();
 
           if (!remote || !Array.isArray(remote.tasks)) {
@@ -1968,6 +2033,7 @@
             state.driveStatus = 'synced';
             state.tagFilter = 'all';
             syncActiveAccountMeta();
+            clearDriveError();
             saveData(false);
             renderAll();
             showToast(t('toastDriveLoaded')(state.tasks.length), 'success');
@@ -1979,9 +2045,10 @@
         } catch (err) {
           if (err.message !== 'TOKEN_EXPIRED') {
             console.error('Lỗi tải Google Drive:', err);
+            showDriveError(err.message || t('toastDriveSyncError'));
             state.driveStatus = hasValidDriveToken() ? 'synced' : 'expired';
             renderDriveStatusUI();
-            showToast(t('toastDriveSyncError'), 'error');
+            showToast(err.message || t('toastDriveSyncError'), 'error');
           }
           return false;
         }
